@@ -6,7 +6,7 @@ Created on Wed Oct 16 21:51:46 2019
 @author: andry
 """
 
-from Bits import Bits
+from Utils.Bits import Bits
 
 
 class Move(object):
@@ -16,12 +16,11 @@ class Move(object):
 
 
 class MoveGenerator(object):
-    # class static variable
     arbitraryMoveIndex = 0
     capture_forward = 0
     capture_backward = 1
     no_capture = 2
-    passa = 3
+    pass_move = 3
     no_more_moves = 4
 
     def __init__(self, board):
@@ -31,7 +30,7 @@ class MoveGenerator(object):
 
     def reset(self, board):
         self.board = board
-        self.moveSetIndex = -1;
+        self.moveSetIndex = -1
         self.set = 0
         self.madeCapture = False
         myPieces = board.myPieces
@@ -69,71 +68,71 @@ class MoveGenerator(object):
         item = Bits.shift_vertical
         movesV = self.getmoves(sfrom, sto, item)
         set_ = (movesV & (target >> 2 * item))
-        if (set_ != 0):
+        if set_ != 0:
             shift = item
-            madeCapture = True;
+            madeCapture = True
             yield self.nextElement(captureType, shift, set_, madeCapture)
 
         # horizontal forward
         item = Bits.shift_horizontal
         movesH = self.getmoves(sfrom, sto, item)
         set_ = (movesH & (target >> 2 * item))
-        if (set_ != 0):
+        if set_ != 0:
             shift = item
-            madeCapture = True;
+            madeCapture = True
             yield self.nextElement(captureType, shift, set_, madeCapture)
 
         # Slant forward
         item = Bits.shift_slant
         sfrom &= Bits.diagonal
-        self.storedFrom = sfrom;
+        self.storedFrom = sfrom
         movesS = self.getmoves(sfrom, sto, item)
         set_ = (movesS & (target >> 2 * item))
         if (set_ != 0):
             shift = item
-            madeCapture = True;
+            madeCapture = True
             yield self.nextElement(captureType, shift, set_, madeCapture)
 
         # Backslant forward
         item = Bits.shift_backslant
         movesB = self.getmoves(sfrom, sto, item)
         set_ = (movesB & (target >> 2 * item))
-        if (set_ != 0):
+        if set_ != 0:
             shift = item
-            madeCapture = True;
+            madeCapture = True
             yield self.nextElement(captureType, shift, set_, madeCapture)
 
             # vertical backward
         item = Bits.shift_vertical
         captureType = MoveGenerator.capture_backward
         set_ = (movesV & (target << item))
-        if (set_ != 0):
+        if set_ != 0:
             shift = item
-            madeCapture = True;
+            madeCapture = True
             yield self.nextElement(captureType, shift, set_, madeCapture)
 
             # horizontal backward
         item = Bits.shift_horizontal
         set_ = (movesH & (target << item))
-        if (set_ != 0):
+        if set_ != 0:
             shift = item
-            madeCapture = True;
+            madeCapture = True
             yield self.nextElement(captureType, shift, set_, madeCapture)
 
             # slant backward
         item = Bits.shift_slant
         set_ = (movesS & (target << item))
-        if (set_ != 0):
+        if set_ != 0:
             shift = item
-            madeCapture = True;
+            madeCapture = True
             yield self.nextElement(captureType, shift, set_, madeCapture)
 
             # Backslant  backward
         item = Bits.shift_backslant
         set_ = (movesB & (target << item))
-        if (set_ != 0):
+        if set_ != 0:
             shift = item
-            madeCapture = True;
+            madeCapture = True
             yield self.nextElement(captureType, shift, set_, madeCapture)
 
             # Shuffle
@@ -200,7 +199,7 @@ class MoveGenerator(object):
             return retval
         elif captureType == MoveGenerator.no_capture:
             return bit | (bit << shift)
-        elif captureType == MoveGenerator.passa:
+        elif captureType == MoveGenerator.pass_move:
             return 0
         elif captureType == MoveGenerator.no_more_moves:
             return -1
