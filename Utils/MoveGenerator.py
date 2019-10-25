@@ -27,6 +27,7 @@ class MoveGenerator(object):
         self.board = board
         self.reset(board)
         self.captureType = 3
+        self.nextSetvalue = self.GeneratorNextSet()
 
     def reset(self, board):
         self.board = board
@@ -34,6 +35,7 @@ class MoveGenerator(object):
         self.set = 0
         self.madeCapture = False
         myPieces = board.myPieces
+        self.nextSetvalue = self.GeneratorNextSet()
 
         if board.midCapture():
             move = myPieces ^ board.previousPosition.myPieces
@@ -55,6 +57,12 @@ class MoveGenerator(object):
 
     def getmoves(self, from_square, to_square, movetype):
         return (from_square & rshift(to_square, movetype)) | (to_square & rshift(from_square, movetype))
+
+    def nextSet(self):
+        try:
+            return next(self.nextSetvalue)
+        except:
+            return -1
 
     def GeneratorNextSet(self):
         sfrom = self.storedFrom
@@ -204,7 +212,7 @@ class MoveGenerator(object):
 
     @staticmethod
     def arbitraryMove(board):
-        from Board import Board
+        from Board.Board import Boardmove
         i = MoveGenerator.arbitraryMoveIndex
         MoveGenerator.arbitraryMoveIndex += 1
         moveGenerator = MoveGenerator(board)
@@ -214,43 +222,15 @@ class MoveGenerator(object):
             i -= 1
             if (i < 0):
                 # print('arbitrary move = %i and capture type = %i'% (move, moveGenerator.captureType))
-                newboard = Board()
-                newmove = newboard.Boardmove(board, move)
+                newmove = Boardmove(board, move)
                 return newmove
         MoveGenerator.arbitraryMoveIndex = 1
-        newboard1 = Board()
-        newmg = MoveGenerator(board).GeneratorNextSet()
-        move = next(newmg)
-        newmove = newboard1.Boardmove(board, move)
+        newmg = MoveGenerator(board)
+        move = newmg.nextSet()
+        newmove = Boardmove(board, move)
         print('arbitrary move A =', move)
         return newmove
 
-
-class nextMoveGenerator(object):
-
-    def __init__(self, movegen):
-        self.movegen = movegen
-
-    def __bool__(self):
-        try:
-            next(self.movegen.nextElement())
-            return True
-        except StopIteration:
-            return False
-
-    __nonzero__ = __bool__
-
-    def __len__(self):
-        return self.bitboard.pseudo_legal_move_count()
-
-    def __iter__(self):
-        return self.movegen.nextElement()
-
-    def __next__(self):
-        return self.movegen.nextElement()
-
-        # def __contains__(self, move):
-    #    return self.bitboard.is_pseudo_legal(move)
 
 
 def rshift(val, n):
