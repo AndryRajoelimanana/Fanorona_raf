@@ -1,20 +1,29 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 22 13:44:23 2019
 
-# !/usr/bin/env python3
+@author: andry
+"""
+from Board.Boardmove import Boardmove
+from Utils import utils
+from Utils.Bits import Bits
+from Utils.MoveGenerator import MoveGenerator
 
-
-from Bits import Bits
-from hashhh import Hash
-import time
-current_milli_time = lambda: int(round(time.time() * 1000))
 
 
 class Board:
+    # Principal Variation Search
     pvs = True
+
+    # Internal Iterative Deepening
     iid = True
     iid_ply = 25
     iid_limit = 55
-    min_hash_depth = 15
+
+    # Board ply
     ply = 10
+    ply_decrement = 1
     forced_move_extension = 5
     forced_capture_extension = 10
     endgame_capture_extension = 5
@@ -23,11 +32,13 @@ class Board:
     early_pass_extension = 10
     won_position = 10000
     decrementable = 5000
-    ply_decrement = 1
-    hash1 = Hash(32768)
+
+    # Evaluation Type
     eval_upper_bound = 0
     eval_lower_bound = 1
     eval_exact = 2
+
+    # statistics gathering parameter
     collect_extra_statistics = False
     sequenceNumber = 0
     leafCount = 0
@@ -38,23 +49,34 @@ class Board:
     endgameDatabase = None
     maxsize = 2147483647
 
-    def __init__(self, blackattop=True, whitegoesfirst=True):
+    def __init__(self, blackAtTop=True, whiteGoesFirst=True):
 
-        self.evaluation = None
+        # Evaluation parameter
+        self.evaluation = 0
         self.bestMove = -1
+
+        # tree creation
         self.principalVariation = None
+        self.hasPrincipalVariation = None
         self.child = None
         self.moveGenerator = None
-        self.forced = False
-        self.hasPrincipalVariation = None
-        self.table = {}
-        self.reset(blackattop = True, whitegoesfirst=True)
 
-    # Initial board
-    def reset(self, blackattop = True, whitegoesfirst=True):
+        # Force move
+        self.forced = False
+        self.movedict = {}
+
+        self.blackAtTop = blackAtTop
+        self.whiteGoesFirst = whiteGoesFirst
+        self.HUMAN_PLAY_WHITE = True
+        self.HUMAN_PLAYS_BLACK = not (self.HUMAN_PLAY_WHITE)
+
+        self.reset(blackAtTop, whiteGoesFirst)
+
+    def reset(self, blackAtTop=True, whiteGoesFirst=True):
+        '''Create Initial board or reset board'''
         self.previousPosition = None
         self.alreadyVisited = 0
-        ImOnTop = (blackattop ^ whitegoesfirst)  # Who is on Top
+        ImOnTop = (blackAtTop ^ whiteGoesFirst)  # Who is on Top
         if ImOnTop:
             self.myPieces = Bits.initial_top
             self.opponentPieces = Bits.initial_bot
@@ -63,27 +85,86 @@ class Board:
             self.opponentPieces = Bits.initial_top
 
         # Who goes first?
-        if whitegoesfirst:
-            self.myPieces = self.myPieces | Bits.is_white   # bottom and white
+        if whiteGoesFirst:
+            self.myPieces = self.myPieces | Bits.is_white  # bottom and white
         else:
             self.opponentPieces = self.opponentPieces | Bits.is_white
 
+    @staticmethod
+    def mustPass(board):
+        '''Check if we must pass'''
+        if not (board.midCapture()):
+            return False
+        mg = MoveGenerator(board)
+        nextset = mg.nextSet()
+        return (nextset == 0)
 
+    def midCapture(self):
+        '''Check the captured bit position 64 : 2**64 '''
+        return (self.myPieces & Bits.captured) != 0
 
-    def twosComplement (value, bitLength=64) :
-        return format(value & (2**bitLength - 1),'064b')
+    def whiteToMove(self):
+        '''use bitmask Bits.is_white = 2**63'''
+        return (self.myPieces & Bits.is_white) != 0
 
-    def nn(self, nnn):
-        g = twosComplement(nnn,64)
-        h = [[0] * 9, [0] * 9, [0] * 9, [0] * 9, [0] * 9]
-        for i in range(5):
-            h[i][:]=g[i*10+15:(i+1)*10+14]
-        return h
+    def humanToMove(self):
+        '''use whiteToMove and HUMAN_PLAY_WHITE'''
+        if (self.whiteToMove()):
+            return self.HUMAN_PLAY_WHITE
+        else:
+            return self.HUMAN_PLAYS_BLACK
 
-    def __str__(self):
-        ff = ''
-        for i in range(5): ff = ff+'  '.join(bb[i][:])+'\n'
-        return
+    def setMoveGenerator(self):
+        '''Setting move generator'''
+        if (self.moveGenerator == None):
+            self.moveGenerator = MoveGenerator(self)
+        else:
+            self.moveGenerator.reset(self)
+
+    def setChild(self, move):
+        '''Setting child tree'''
+        if self.child == None:
+            self.child = Boardmove(self, move)
+            if (Board.collect_extra_statistics):
+                Board.boardConsCount += 1
+        else:
+            captures = self.opponentPieces & move
+            if (captures != 0):
+                self.child.opponentPieces = utils.NegBit(self.opponentPieces ^ captures)
+                move ^= captures
+                self.child.alreadyVisited = self.alreadyVisited | move
+                self.child.myPieces = utils.NegBit(self.myPieces ^ move)
+            else:
+                self.child.opponentPieces = self.myPieces ^ move
+                self.child.myPieces = utils.PosBit(self.opponentPieces)
+                self.child.alreadyVisited = 0
+        self.child.bestMove = -1;
+
+    def setPrincipalVariation(self):
+        '''Setting Principal Variation search'''
+        if (Board.collect_extra_statistics):
+            Board.pvChangeCount += 1
+        if (self.principalVariation == None):
+            self.principalVariation = self.child
+            self.child = self.principalVariation.child
+            if (self.child != None):
+                self.child.previousPosition = self
+        else:
+            temp = self.child
+            self.child = self.principalVariation
+            self.principalVariation = temp
+            self.child.child = self.principalVariation.child
+            if (self.child.child != None):
+                self.child.child.previousPosition = self.child
+        self.principalVariation.child = None
+        self.hasPrincipalVariation = True
+
+    def __repr__(self):
+        ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (self.myPieces, self.opponentPieces)
+        board_pieces = utils.PiecesOnBoard(self.myPieces, self.opponentPieces)
+        for i in range(5): ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'
+        return ff
+
 
 
 

@@ -47,11 +47,9 @@ class MoveGenerator(object):
             else:
                 move = (move << Bits.shift_backslant) | rshift(move, Bits.shift_backslant)
             self.storedTo = Bits.on_board & ~(move | myPieces | board.opponentPieces | board.alreadyVisited)
-            # print(self.storedFrom, self.storedTo, self.set)
             return
         else:
             self.storedFrom = myPieces
-            # print(myPieces , board.opponentPieces)
             self.storedTo = Bits.on_board & ~(myPieces | board.opponentPieces)
             return
 
@@ -102,7 +100,7 @@ class MoveGenerator(object):
             made_capture = True
             yield self.nextElement(capture_type, shift, set_, made_capture)
 
-            # vertical backward
+        # vertical backward
         item = Bits.shift_vertical
         capture_type = MoveGenerator.capture_backward
         set_ = (movesV & (target << item))
@@ -111,7 +109,7 @@ class MoveGenerator(object):
             made_capture = True
             yield self.nextElement(capture_type, shift, set_, made_capture)
 
-            # horizontal backward
+        # horizontal backward
         item = Bits.shift_horizontal
         set_ = (movesH & (target << item))
         if set_ != 0:
@@ -119,7 +117,7 @@ class MoveGenerator(object):
             made_capture = True
             yield self.nextElement(capture_type, shift, set_, made_capture)
 
-            # slant backward
+        # slant backward
         item = Bits.shift_slant
         set_ = (movesS & (target << item))
         if set_ != 0:
@@ -127,7 +125,7 @@ class MoveGenerator(object):
             made_capture = True
             yield self.nextElement(capture_type, shift, set_, made_capture)
 
-            # Backslant  backward
+        # Backslant  backward
         item = Bits.shift_backslant
         set_ = (movesB & (target << item))
         if set_ != 0:
@@ -135,7 +133,7 @@ class MoveGenerator(object):
             made_capture = True
             yield self.nextElement(capture_type, shift, set_, made_capture)
 
-            # Shuffle
+        # Shuffle
         if self.board.midCapture():
             capture_type = MoveGenerator.no_more_moves
             set_ = 1
@@ -183,14 +181,14 @@ class MoveGenerator(object):
         bit = set_
         bit &= -bit
         set_ ^= bit
-        if (captureType == MoveGenerator.capture_forward):
+        if captureType == MoveGenerator.capture_forward:
             retval = bit | (bit << shift)
             bit <<= 2 * shift
             while (bit & self.board.opponentPieces) != 0:
                 retval |= bit
                 bit <<= shift
             return retval
-        elif (captureType == MoveGenerator.capture_backward):
+        elif captureType == MoveGenerator.capture_backward:
             retval = bit | (bit << shift)
             bit = rshift(bit, shift)
             while (bit & self.board.opponentPieces) != 0:
