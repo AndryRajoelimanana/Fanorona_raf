@@ -5,7 +5,7 @@ Created on Tue Oct 22 13:44:23 2019
 
 @author: andry
 """
-from Board.Boardmove import Boardmove
+
 from Utils import utils
 from Utils.Bits import Bits
 from Utils.MoveGenerator import MoveGenerator
@@ -167,9 +167,18 @@ class Board:
 
 
 
-
-
-
-
-
-
+class Boardmove(Board):
+    def __init__(self, previousPosition, move):
+        super().__init__()
+        self.previousPosition = previousPosition
+        captures = previousPosition.opponentPieces & move
+        if (captures != 0):
+            self.opponentPieces = utils.NegBit(previousPosition.opponentPieces ^ captures)
+            move ^= captures
+            self.alreadyVisited = previousPosition.alreadyVisited | move
+            self.myPieces = utils.NegBit(previousPosition.myPieces ^ move)
+        else:
+            oppp = previousPosition.opponentPieces
+            self.opponentPieces = previousPosition.myPieces ^ move
+            self.myPieces = utils.PosBit(oppp)
+            self.alreadyVisited = 0
