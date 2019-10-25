@@ -49,7 +49,10 @@ class Evaluation():
     ratios = [2147483647]+[int(piece_weight/(i+1)) for i in range(64)]
 
     @staticmethod
-    def attack(attackers, openb):
+    def attack(attackers, open_on_board):
+        moves = getMoves(attackers, open_on_board, Bits.shift_vertical)
+
+
         moves = (rshift(attackers, Bits.shift_vertical) & openb)| (rshift(openb, Bits.shift_vertical) & attackers)
         unsafe = rshift(moves, Bits.shift_vertical) | (moves << (2 * Bits.shift_vertical))
         moves = (rshift(attackers, Bits.shift_horizontal) & openb) | (rshift(openb, Bits.shift_horizontal) & attackers)
@@ -68,8 +71,8 @@ class Evaluation():
 
     @staticmethod
     def activity(pieces, safeMoves):
-        act = (Evalss.active_squares & Evalss.nextTo(safeMoves)) | Evalss.nextTo(Evalss.active_squares & safeMoves)
-        return (act | (Evalss.active_squares & Evalss.nextTo(act & pieces))) & pieces
+        act = (Evaluation.active_squares & Evaluation.nextTo(safeMoves)) | Evaluation.nextTo(Evaluation.active_squares & safeMoves)
+        return (act | (Evaluation.active_squares & Evaluation.nextTo(act & pieces))) & pieces
 
     @staticmethod
     def evaluate(b, alpha=-2147483648, beta=2147483647, depth=-2147483647):
@@ -80,47 +83,47 @@ class Evaluation():
         oppPieceCount = Bits.count(opponentPieces)
         if ((myPieceCount <= 2) and (oppPieceCount <=2)):
             return True
-        occupied = myPieces | opponentPieces
-        openb = Bits.on_board & ~occupied
-        myAttacks = Evalss.attack(myPieces, openb)
+
+        open_position = open_on_board(b)
+        myAttacks = Evaluation.attack(myPieces, open_position)
         if ((myAttacks & opponentPieces) !=0):
             oppPieceCount -= 1
             if (oppPieceCount == 0):
                 b.evaluation = myPieceCount * Board.won_position - Board.ply_decrement
                 return True
-            if (depth > Evalss.capture_depth):
+            if (depth > Evaluation.capture_depth):
                 return False
             if (myPieceCount >= oppPieceCount):
-                b.evaluation = (myPieceCount - oppPieceCount) * (Evalss.ratios[oppPieceCount] + Evalss.piece_value)
+                b.evaluation = (myPieceCount - oppPieceCount) * (Evaluation.ratios[oppPieceCount] + Evaluation.piece_value)
             else:
-                b.evaluation = -(oppPieceCount - myPieceCount) * (Evalss.ratios[myPieceCount] + Evalss.piece_value)
+                b.evaluation = -(oppPieceCount - myPieceCount) * (Evaluation.ratios[myPieceCount] + Evaluation.piece_value)
             return True
 
-        oppAttacks = Evalss.attack(opponentPieces, openb)
-        mySafeMoves = openb & ~oppAttacks
-        myActive = Evalss.activity(myPieces, mySafeMoves)
+        oppAttacks = Evaluation.attack(opponentPieces, open_position)
+        mySafeMoves = open_position & ~oppAttacks
+        myActive = Evaluation.activity(myPieces, mySafeMoves)
         attacked = myPieces & oppAttacks
         if ((myActive == 0) or ((attacked & myActive) != attacked) or ((attacked & (attacked -1)) != 0)):
             myPieceCount -= 1
             if (myPieceCount == 0):
                 b.evaluation = -(oppPieceCount * Board.won_position - 4*Board.ply_decrement)
                 return True
-            if (depth > Evalss.capture_depth):
+            if (depth > Evaluation.capture_depth):
                 return False
         elif (attacked != 0):
-            if (depth > Evalss.threat_depth):
+            if (depth > Evaluation.threat_depth):
                 return False
 
-        control = int(rshift(((opponentPieces & Evalss.left_control) - 1), 57))
-        - int(rshift(((myPieces & Evalss.left_control) - 1), 57))
-        + int(rshift(((opponentPieces & Evalss.center_control) - 1), 57))
-        - int(rshift(((myPieces & Evalss.center_control) - 1), 57))
-        + int(rshift(((opponentPieces & Evalss.right_control) - 1), 57))
-        - int(rshift(((myPieces & Evalss.right_control) - 1), 57))
+        control = int(rshift(((opponentPieces & Evaluation.left_control) - 1), 57))
+        - int(rshift(((myPieces & Evaluation.left_control) - 1), 57))
+        + int(rshift(((opponentPieces & Evaluation.center_control) - 1), 57))
+        - int(rshift(((myPieces & Evaluation.center_control) - 1), 57))
+        + int(rshift(((opponentPieces & Evaluation.right_control) - 1), 57))
+        - int(rshift(((myPieces & Evaluation.right_control) - 1), 57))
 
         # Compute opponent active Pieces. Count active Pieces.
-        oppSafeMoves = openb & ~myAttacks
-        oppActive = Evalss.activity(opponentPieces, oppSafeMoves)
+        oppSafeMoves = open_position & ~myAttacks
+        oppActive = Evaluation.activity(opponentPieces, oppSafeMoves)
         myActivity = Bits.count(myActive)
         oppActivity = Bits.count(oppActive)
 
@@ -129,9 +132,9 @@ class Evaluation():
             oppPieceCount += oppActivity
             if (myPieceCount >= oppPieceCount):
                 # print(myPieces, opponentPieces, myActivity, myPieceCount, oppActivity, oppPieceCount)
-                b.evaluation = control + (myPieceCount - oppPieceCount) * Evalss.ratios[oppPieceCount]
+                b.evaluation = control + (myPieceCount - oppPieceCount) * Evaluation.ratios[oppPieceCount]
             else:
-                b.evaluation = control - (oppPieceCount - myPieceCount) * Evalss.ratios[myPieceCount]
+                b.evaluation = control - (oppPieceCount - myPieceCount) * Evaluation.ratios[myPieceCount]
             return True
         if (myActivity > oppActivity):
             attacking = True
@@ -159,10 +162,10 @@ class Evaluation():
             beta = -x
         if (((defendingActivity + defendingTrapped) == 1)
             and (attackingActivity >= 2) and (attackingTrapped == 0)
-            and ((safeForDefense & Evalss.nextTo(attackingPieces &
-             ~Evalss.active_squares)) == 0)
-             and ((safeForDefense & Evalss.nextTo(attackingPieces) &
-              Evalss.nextTo(defendingPieces)) == 0)):
+            and ((safeForDefense & Evaluation.nextTo(attackingPieces &
+             ~Evaluation.active_squares)) == 0)
+             and ((safeForDefense & Evaluation.nextTo(attackingPieces) &
+              Evaluation.nextTo(defendingPieces)) == 0)):
             b.evaluation = int(attackingActivity * Board.won_position - (Board.won_position / 2) + control)
             if not (attacking):
                 b.evaluation = -b.evaluation
@@ -171,10 +174,10 @@ class Evaluation():
         attackZone = 0
         fortress = 0
         fortressStrength = 0
-        if (((Evalss.lg_left_fort & attackingPieces) == 0)
-            and ((Evalss.lg_left_guard & defendingPieces) != 0)):
+        if (((Evaluation.lg_left_fort & attackingPieces) == 0)
+            and ((Evaluation.lg_left_guard & defendingPieces) != 0)):
             print('tato lg_left')
-            fortress = Evalss.lg_left_fort & defendingPieces
+            fortress = Evaluation.lg_left_fort & defendingPieces
             fortress &= fortress - 1
             if (fortress != 0):
                 fortress &= fortress - 1
@@ -182,27 +185,27 @@ class Evaluation():
                     fortressStrength = 1
                 else:
                     fortressStrength = 2
-                attackZone = Evalss.lg_left_attack;
-                if ((Evalss.lg_left_guard & stuckDefenders) != 0):
+                attackZone = Evaluation.lg_left_attack;
+                if ((Evaluation.lg_left_guard & stuckDefenders) != 0):
                     defendingActivity += 1
                     defendingTrapped -= 1
 
-        elif (((Evalss.sm_left_fort & attackingPieces) == 0)
-            and ((Evalss.sm_left_guard & defendingPieces) != 0)):
+        elif (((Evaluation.sm_left_fort & attackingPieces) == 0)
+            and ((Evaluation.sm_left_guard & defendingPieces) != 0)):
             print('tato sm_left')
-            fortress = Evalss.sm_left_fort & defendingPieces
+            fortress = Evaluation.sm_left_fort & defendingPieces
             fortress &= fortress - 1;
             if (fortress != 0):
                 fortressStrength = 1
-                attackZone = Evalss.sm_left_attack
-                if ((Evalss.sm_left_guard & stuckDefenders) != 0):
+                attackZone = Evaluation.sm_left_attack
+                if ((Evaluation.sm_left_guard & stuckDefenders) != 0):
                     defendingActivity += 1
                     defendingTrapped -= 1
 
         # large and small right fortresses
-        if (((Evalss.lg_right_fort & attackingPieces) == 0) and ((Evalss.lg_right_guard & defendingPieces) != 0)):
+        if (((Evaluation.lg_right_fort & attackingPieces) == 0) and ((Evaluation.lg_right_guard & defendingPieces) != 0)):
             print('tato lg_right')
-            fortress = Evalss.lg_right_fort & defendingPieces
+            fortress = Evaluation.lg_right_fort & defendingPieces
             fortress &= fortress - 1;
             if (fortress != 0):
                 fortress &= fortress - 1;
@@ -210,20 +213,20 @@ class Evaluation():
                     fortressStrength += 1
                 else:
                     fortressStrength += 2
-                attackZone |= Evalss.lg_right_attack;
-                if ((Evalss.lg_right_guard & stuckDefenders) != 0):
+                attackZone |= Evaluation.lg_right_attack;
+                if ((Evaluation.lg_right_guard & stuckDefenders) != 0):
                     defendingActivity += 1
                     defendingTrapped -= 1
 
-        elif (((Evalss.sm_right_fort & attackingPieces) == 0)
-            and ((Evalss.sm_right_guard & defendingPieces) != 0)):
+        elif (((Evaluation.sm_right_fort & attackingPieces) == 0)
+            and ((Evaluation.sm_right_guard & defendingPieces) != 0)):
             print('tato sm_right')
-            fortress = Evalss.sm_right_fort & defendingPieces
+            fortress = Evaluation.sm_right_fort & defendingPieces
             fortress &= fortress - 1
             if (fortress != 0):
                 fortressStrength += 1
-                attackZone |= Evalss.sm_right_attack
-                if ((Evalss.sm_right_guard & stuckDefenders) != 0):
+                attackZone |= Evaluation.sm_right_attack
+                if ((Evaluation.sm_right_guard & stuckDefenders) != 0):
                     defendingActivity += 1
                     defendingTrapped -= 1
 
@@ -231,27 +234,27 @@ class Evaluation():
             fortressStrength = rshift(control, 31)
 
         if (attackingActivity - defendingActivity - fortressStrength > 0):
-            evalb = Evalss.attack_weight * (attackingActivity - defendingActivity-fortressStrength) + Evalss.trapped_piece_weight *(attackingTrapped - defendingTrapped) - Evalss.conversion_weight * defendingActivity
+            evalb = Evaluation.attack_weight * (attackingActivity - defendingActivity-fortressStrength) + Evaluation.trapped_piece_weight *(attackingTrapped - defendingTrapped) - Evaluation.conversion_weight * defendingActivity
         else:
             a = 2 * attackingActivity + attackingTrapped
             d = 2 * defendingActivity + defendingTrapped
             if (a > d):
-                evalb = (a - d) * Evalss.ratios[d]
+                evalb = (a - d) * Evaluation.ratios[d]
             elif (d > a):
-                evalb = (d - a) * Evalss.ratios[a]
+                evalb = (d - a) * Evaluation.ratios[a]
             else:
                 evalb = 0
-            evalb += control + Evalss.attack_bonus
+            evalb += control + Evaluation.attack_bonus
 
-        if ((evalb + Evalss.max_positional_eval > alpha) and (evalb - Evalss.max_positional_eval < beta)):
+        if ((evalb + Evaluation.max_positional_eval > alpha) and (evalb - Evaluation.max_positional_eval < beta)):
             space = defendingPieces
             while True:
-                newSpace =  space | ((Evalss.nextTo(space) & safeForDefense))
+                newSpace =  space | ((Evaluation.nextTo(space) & safeForDefense))
                 if (space == newSpace):
                     break
                 space =  newSpace
 
-            evalb += Evalss.forward_weight * Bits.count(attackingPieces & attackZone) - Evalss.space_weight * Bits.count(space)
+            evalb += Evaluation.forward_weight * Bits.count(attackingPieces & attackZone) - Evaluation.space_weight * Bits.count(space)
 
         if(attacking):
             b.evaluation = evalb

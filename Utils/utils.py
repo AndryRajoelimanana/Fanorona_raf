@@ -22,6 +22,11 @@ def ShowBoard(pieces, pieces2):
     for i in range(5): ff = ff + '  ' + '  '.join(boardpieces[i][:]) + '\n'
     return ff
 
+def open_on_board(board):
+    occupied = board.myPieces | board.pponentPieces
+    open_position = Bits.on_board & ~occupied
+    return open_position
+
 
 def getMoves(attackers, open_on_board, movetype):
     '''Returns moves for a specific move type'''
