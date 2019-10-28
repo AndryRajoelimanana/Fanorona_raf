@@ -8,7 +8,8 @@ Created on Tue Oct 22 13:44:23 2019
 
 from Utils import utils
 from Utils.Bits import Bits
-from Utils.MoveGenerator import MoveGenerator
+from engine.MoveGenerator import MoveGenerator
+from Board.Evaluation import Evaluation
 
 
 class Board:
@@ -39,14 +40,14 @@ class Board:
 
     # statistics gathering parameter
     collect_extra_statistics = False
-    sequenceNumber = 0
+    sequence_number = 0
     leafCount = 0
     nodeCount = 0
     boardConsCount = 0
     moveGenConsCount = 0
     pvChangeCount = 0
     endgameDatabase = None
-    maxsize = 2147483647
+    maxsize =  9223372036854775808
 
     def __init__(self, black_at_top=True, white_goes_first=True):
 
@@ -190,8 +191,8 @@ class Board:
             #                    # print('Tato hash')
             #                return
 
-            if (sequenceNumber != Board.sequenceNumber):
-                print("Sequence number %s != %s" % (sequenceNumber, Board.sequenceNumber))
+            if (sequenceNumber != Board.sequence_number):
+                print("Sequence number %s != %s" % (sequenceNumber, Board.sequence_number))
                 return
 
             moveGeneratorIsSet = False
@@ -290,7 +291,7 @@ class Board:
                 if (Board.pvs and (alpha < Board.decrementable) and (-alpha > -Board.decrementable)):
                     pvsBeta = alpha + 1
 
-            if (sequenceNumber != Board.sequenceNumber):
+            if (sequenceNumber != Board.sequence_number):
                 return
             if (self.evaluation > Board.decrementable):
                 self.evaluation -= Board.ply_decrement

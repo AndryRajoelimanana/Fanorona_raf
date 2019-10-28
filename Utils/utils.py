@@ -33,9 +33,9 @@ def eaten_pieces(moves, movetype):
     return rshift(moves, movetype) | (moves << (2 * movetype))
 
 
-def getMoves(attackers, open_on_board, movetype):
+def getMoves(attackers, open_board, movetype):
     """Returns moves for a specific move type"""
-    return (attackers & rshift(open_on_board, movetype)) | (open_on_board & rshift(attackers, movetype))
+    return (attackers & rshift(open_board, movetype)) | (open_board & rshift(attackers, movetype))
 
 
 def NegBit(val):
@@ -46,10 +46,22 @@ def NegBit(val):
 
 
 def PosBit(val):
-    """Returs Positive Bit"""
+    """Returns Positive Bit"""
     if (val & (~(1 << 63))) < -(1 << 63):
         val = val + (1 << 63)
     return val
+
+
+def get_bit(piece):
+    bit_value = 0
+    row = {'1': 0, '2': 10, '3': 20, '4': 30, '5': 40}
+    column = {'a': 8, 'b': 7, 'c': 6, 'd': 5, 'e': 4, 'f': 3, 'g': 2, 'h': 1, 'i': 0}
+    for j in piece:
+        try:
+            bit_value += 2 ** (column[j[0]] + row[j[1]])
+        except KeyError:
+            return 0
+    return bit_value
 
 
 def rshift(val, n):

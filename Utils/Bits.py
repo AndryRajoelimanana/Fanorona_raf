@@ -15,6 +15,7 @@ class Bits:
     shift_slant = 11
     shift_backslant = 9
 
+
     @staticmethod
     def at(row, col):
         return 1 << (10 * (4 - row)) + (8 - col)
@@ -24,12 +25,11 @@ class Bits:
         stones = 0
         for i in range(5):
             for j in range(9):
-                if ((pieces & Bits.at(i, j)) != 0):
+                if (pieces & Bits.at(i, j)) != 0:
                     stones += 1
         return stones
 
     @staticmethod
     def lastBit(bitboard):
         return bitboard & -bitboard
-
 
