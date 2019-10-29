@@ -84,7 +84,7 @@ class Evaluation:
 
     @staticmethod
     def evaluate(b, alpha=-9223372036854775808, beta=9223372036854775807, depth=-9223372036854775808):
-        from Board import Board
+        from board import Board
         my_pieces = b.myPieces & Bits.on_board
         opponent_pieces = b.opponentPieces & Bits.on_board
         my_piece_count = Bits.count(my_pieces)

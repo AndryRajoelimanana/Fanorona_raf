@@ -16,7 +16,7 @@ def PiecesOnBoard(pieces, pieces2):
 
 
 def ShowBoard(pieces, pieces2):
-    """Showing pieces on the Board"""
+    """Showing pieces on the board"""
     board_pieces = PiecesOnBoard(pieces, pieces2)
     ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (pieces, pieces2)
     for i in range(5): ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'

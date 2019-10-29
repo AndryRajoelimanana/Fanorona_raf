@@ -212,7 +212,7 @@ class MoveGenerator(object):
 
     @staticmethod
     def arbitraryMove(board):
-        from Board.Board import Boardmove
+        from board.Board import Boardmove
         i = MoveGenerator.arbitraryMoveIndex
         MoveGenerator.arbitraryMoveIndex += 1
         moveGenerator = MoveGenerator(board)

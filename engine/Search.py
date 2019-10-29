@@ -1,4 +1,8 @@
-from Board.Board import Board, Boardmove
+import os
+import sys
+sys.path.append(os.path.realpath('..'))
+from board.Board import Board
+from board.Board import Boardmove
 from engine.MoveGenerator import MoveGenerator
 
 import time
@@ -109,7 +113,7 @@ class Search:
                 if sequence_number != Board.sequence_number:
                     self.abort()
                     return
-                self.board.alphaBeta(depth * Board.ply, alpha, beta, sequence_number)
+                self.board.alpha_beta(depth * Board.ply, alpha, beta, sequence_number)
                 Search.currentEval = self.board.evaluation
                 aspirations += 1
                 if (current_milli_time() - start_time) > Search.time_max:
