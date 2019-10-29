@@ -28,7 +28,7 @@ class Search:
         self.move_log = []
         time.sleep(0)
 
-        if Board.mustPass(self.board):
+        if Board.must_pass(self.board):
             print('Forced pass')
             new_board_move = Boardmove(self.board, 0)
             self.set_board_move(new_board_move)

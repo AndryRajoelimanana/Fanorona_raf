@@ -91,37 +91,37 @@ class Board:
             self.opponentPieces = self.opponentPieces | Bits.is_white
 
     @staticmethod
-    def mustPass(board):
+    def must_pass(board):
         """Check if we must pass"""
-        if not (board.midCapture()):
+        if not (board.mid_capture()):
             return False
         mg = MoveGenerator(board)
-        nextset = mg.nextSet()
-        return nextset == 0
+        next_set = mg.nextSet()
+        return next_set == 0
 
-    def midCapture(self):
+    def mid_capture(self):
         """Check the captured bit position 64 : 2**64 """
         return (self.myPieces & Bits.captured) != 0
 
-    def whiteToMove(self):
+    def white_to_move(self):
         """use bitmask Bits.is_white = 2**63"""
         return (self.myPieces & Bits.is_white) != 0
 
-    def humanToMove(self):
+    def human_to_move(self):
         """use whiteToMove and HUMAN_PLAY_WHITE"""
-        if self.whiteToMove():
+        if self.white_to_move():
             return self.HUMAN_PLAY_WHITE
         else:
             return self.HUMAN_PLAYS_BLACK
 
-    def setMoveGenerator(self):
+    def set_move_generator(self):
         """Setting move generator"""
         if self.moveGenerator is None:
             self.moveGenerator = MoveGenerator(self)
         else:
             self.moveGenerator.reset(self)
 
-    def setChild(self, move):
+    def set_child(self, move):
         """Setting child tree"""
         if self.child is None:
             self.child = Boardmove(self, move)
@@ -140,7 +140,7 @@ class Board:
                 self.child.alreadyVisited = 0
         self.child.best_move = -1
 
-    def setPrincipalVariation(self):
+    def set_principal_variation(self):
         """Setting Principal Variation search"""
         if Board.collect_extra_statistics:
             Board.pvChangeCount += 1
@@ -166,7 +166,7 @@ class Board:
     def alpha_beta(self, depth, alpha, beta, sequence_number):
         Board.nodeCount += 1
         self.hasPrincipalVariation = False
-        if self.midCapture():
+        if self.mid_capture():
             eval_bool = Evaluation.evaluate(self, alpha, beta, depth)
             if (depth <= 0) and eval_bool:
                 Board.leafCount += 1
@@ -176,20 +176,10 @@ class Board:
                 best_move = self.movedict[hash_value]
                 if best_move >= 0:
                     self.best_move = best_move
-                    self.setChild(best_move)
+                    self.set_child(best_move)
                     self.child.hasPrincipalVariation = False
-                    self.setPrincipalVariation()
+                    self.set_principal_variation()
                 return
-
-                #            hashKey = board.hash1.hashKey(self)
-        #            # print(hashKey, self.best_move, self.evaluation, alpha, beta)
-        #            if (board.hash1.getHash(self, hashKey, alpha, beta, depth)):
-        #                if ((self.best_move >= 0) and (self.evaluation >= alpha) and (self.evaluation <= beta)):
-        #                    self.setChild(self.best_move)
-        #                    self.child.hasPrincipalVariation = False
-        #                    self.setPrincipalVariation()
-        #                    # print('Tato hash')
-        #                return
 
         if sequence_number != Board.sequence_number:
             print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
@@ -202,7 +192,7 @@ class Board:
             self.alpha_beta(depth - Board.iid_ply, alpha, beta, sequence_number)
             move = self.best_move
         else:
-            self.setMoveGenerator()
+            self.set_move_generator()
             move_generator_is_set = True
             move = self.moveGenerator.nextSet()
             self.forced = not (self.moveGenerator.hasMoreElements())
@@ -227,7 +217,7 @@ class Board:
         pvs_beta = beta
         # Main alpha-beta loop
         while move >= 0:
-            self.setChild(move)
+            self.set_child(move)
             # print(move, newDepth)
             print("move = %s" % move)
             # if first move , check if it is already hashed
@@ -262,7 +252,7 @@ class Board:
                 eval_type = Board.eval_exact
                 self.best_move = move
                 self.child.hasPrincipalVariation = False
-                self.setPrincipalVariation()
+                self.set_principal_variation()
                 break
 
             # print("fff: ",newDepth,' ',move,' ',alpha,' ',beta," ",board.nodeCount);
@@ -277,11 +267,11 @@ class Board:
                         eval_type = Board.eval_lower_bound
                         break  # fail high, prune search by breaking from loop
                     eval_type = Board.eval_exact
-                    self.setPrincipalVariation()
+                    self.set_principal_variation()
             if (self.forced):
                 break
             if not (move_generator_is_set):
-                self.setMoveGenerator()
+                self.set_move_generator()
                 move_generator_is_set = True
             # print("moveSetindex",self.moveGenerator.moveSetIndex)
             move = self.moveGenerator.nextSet()

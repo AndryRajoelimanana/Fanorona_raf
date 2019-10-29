@@ -37,7 +37,7 @@ class MoveGenerator(object):
         myPieces = board.myPieces
         self.nextSetvalue = self.GeneratorNextSet()
 
-        if board.midCapture():
+        if board.mid_capture():
             move = myPieces ^ board.previousPosition.myPieces
             self.storedFrom = myPieces & move
             if (move & (move << Bits.shift_vertical) & Bits.on_board) != 0:
@@ -142,7 +142,7 @@ class MoveGenerator(object):
             yield self.nextElement(capture_type, shift, set_, made_capture)
 
         # Shuffle
-        if self.board.midCapture():
+        if self.board.mid_capture():
             capture_type = MoveGenerator.no_more_moves
             set_ = 1
             return self.nextElement(capture_type, 0, set_, False)
