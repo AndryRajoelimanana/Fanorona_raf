@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.append(os.path.realpath('..'))
 from board.Board import Board
 from board.Board import Boardmove
@@ -51,7 +52,7 @@ class Search:
             self.done()
             return
 
-        self.search()
+        # self.search()
 
     def get_stop(self):
         return self.stop
@@ -92,7 +93,7 @@ class Search:
         log_disabled = False
         previous_eval = 0
         self.move_log = []
-        self.board.bestMove = -1
+        self.board.best_move = -1
         Board.sequence_number = Board.sequence_number + 1
         sequence_number = Board.sequence_number
         while ((self.ply == 0) or (depth <= self.ply)) and (not (self.get_stop())):
@@ -130,7 +131,7 @@ class Search:
             if Search.winning(previous_eval) and (not Search.between(0, previous_eval, Search.currentEval)):
                 Search.currentEval = previous_eval
             elif self.board.principalVariation is not None:
-                self.set_board_move(Boardmove(self.board, self.board.bestMove))
+                self.set_board_move(Boardmove(self.board, self.board.best_move))
             if (not log_disabled) or (Search.currentEval != previous_eval):
                 previous_eval = Search.currentEval
             if Search.winning(Search.currentEval) and (not log_disabled):

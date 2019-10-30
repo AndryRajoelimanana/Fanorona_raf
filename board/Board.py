@@ -39,7 +39,7 @@ class Board:
     eval_exact = 2
 
     # statistics gathering parameter
-    collect_extra_statistics = False
+    collect_extra_statistics = True
     sequence_number = 0
     leafCount = 0
     nodeCount = 0
@@ -47,7 +47,8 @@ class Board:
     moveGenConsCount = 0
     pvChangeCount = 0
     endgameDatabase = None
-    maxsize =  9223372036854775808
+    maxsize = 9223372036854775808
+    movedict = {}
 
     def __init__(self, black_at_top=True, white_goes_first=True):
 
@@ -63,7 +64,6 @@ class Board:
 
         # Force move
         self.forced = False
-        self.movedict = {}
 
         self.blackAtTop = black_at_top
         self.whiteGoesFirst = white_goes_first
@@ -166,19 +166,28 @@ class Board:
     def alpha_beta(self, depth, alpha, beta, sequence_number):
         Board.nodeCount += 1
         self.hasPrincipalVariation = False
+        hash_value = None
         if self.mid_capture():
             eval_bool = Evaluation.evaluate(self, alpha, beta, depth)
             if (depth <= 0) and eval_bool:
                 Board.leafCount += 1
                 return
             hash_value = self.gethash()
-            if hash_value in self.movedict.keys():
-                best_move = self.movedict[hash_value]
-                if best_move >= 0:
-                    self.best_move = best_move
-                    self.set_child(best_move)
-                    self.child.hasPrincipalVariation = False
-                    self.set_principal_variation()
+            if hash_value in Board.movedict.keys():
+                print('Already in move dict')
+                stored_value = Board.movedict[hash_value]
+                self.best_move = stored_value[2]
+                stored_eval_type = stored_value[3]
+                self.forced = stored_value[4]
+                stored_eval = stored_value[5]
+                if stored_eval_type == Board.eval_exact or (
+                        stored_eval_type == Board.eval_upper_bound and stored_eval <= alpha) or (
+                        stored_eval_type == Board.eval_lower_bound and stored_eval >= beta):
+                    self.evaluation = stored_eval
+                    if self.best_move >= 0 and (stored_eval >= alpha) and (stored_eval <= beta):
+                        self.set_child(self.best_move)
+                        self.child.hasPrincipalVariation = False
+                        self.set_principal_variation()
                 return
 
         if sequence_number != Board.sequence_number:
@@ -218,82 +227,69 @@ class Board:
         # Main alpha-beta loop
         while move >= 0:
             self.set_child(move)
-            # print(move, newDepth)
-            print("move = %s" % move)
+
             # if first move , check if it is already hashed
-
-            if (self.child.myPieces >= 0):  # Not midCapture
-                self.child.alpha_beta(
-                    new_depth, -pvs_beta, -alpha, sequence_number)
-                moveEval = -self.child.evaluation
-                if (moveEval >= pvs_beta) and (moveEval < beta):
-                    self.child.alpha_beta(
-                        new_depth, -beta, -alpha, sequence_number)
-                    moveEval = -self.child.evaluation
-                if (moveEval > self.evaluation) and (move == 0) and (not (self.forced)):
-                    self.child.alpha_beta(
-                        new_depth + Board.early_pass_extension, -beta, -alpha, sequence_number)
-                    moveEval = -self.child.evaluation
-
-            # end hashed
+            if not self.child.mid_capture():  # Not midCapture
+                self.child.alpha_beta(new_depth, -pvs_beta, -alpha, sequence_number)
+                move_eval = -self.child.evaluation
+                if pvs_beta <= move_eval < beta:
+                    self.child.alpha_beta(new_depth, -beta, -alpha, sequence_number)
+                    move_eval = -self.child.evaluation
+                if (move_eval > self.evaluation) and (move == 0) and (not self.forced):
+                    self.child.alpha_beta(new_depth + Board.early_pass_extension, -beta, -alpha, sequence_number)
+                    move_eval = -self.child.evaluation
 
             # do this IF opponent piece not equal 0
-
-            elif ((self.child.opponentPieces & Bits.on_board) != 0):
-                self.child.alpha_beta(
-                    new_depth + capture_extension, alpha, beta, sequence_number)
-                moveEval = self.child.evaluation
+            elif (self.child.opponentPieces & Bits.on_board) != 0:
+                self.child.alpha_beta(new_depth + capture_extension, alpha, beta, sequence_number)
+                move_eval = self.child.evaluation
 
             # opponent piece == 0 finish it
-
             else:
-                self.evaluation = Bits.count(
-                    self.myPieces & Bits.on_board) * Board.won_position
+                self.evaluation = Bits.count(self.myPieces & Bits.on_board) * Board.won_position
                 eval_type = Board.eval_exact
                 self.best_move = move
                 self.child.hasPrincipalVariation = False
                 self.set_principal_variation()
                 break
 
-            # print("fff: ",newDepth,' ',move,' ',alpha,' ',beta," ",board.nodeCount);
-            # print("alphabeta: ", self.myPieces,' ',self.opponentPieces,' ',self.best_move,' ',self.evaluation);
-
-            if (moveEval > self.evaluation):
+            if move_eval > self.evaluation:
                 self.best_move = move
-                self.evaluation = moveEval
-                if (moveEval > alpha):
-                    alpha = moveEval
-                    if (moveEval >= beta):
+                self.evaluation = move_eval
+                if move_eval > alpha:
+                    alpha = move_eval
+                    if move_eval >= beta:
                         eval_type = Board.eval_lower_bound
                         break  # fail high, prune search by breaking from loop
                     eval_type = Board.eval_exact
                     self.set_principal_variation()
-            if (self.forced):
+            if self.forced:
                 break
-            if not (move_generator_is_set):
+            if not move_generator_is_set:
                 self.set_move_generator()
                 move_generator_is_set = True
-            # print("moveSetindex",self.moveGenerator.moveSetIndex)
             move = self.moveGenerator.nextSet()
-            if (move == first_move):
+            if move == first_move:
                 move = self.moveGenerator.nextSet()
-            if (Board.pvs and (alpha < Board.decrementable) and (-alpha > -Board.decrementable)):
+            if Board.pvs and (alpha < Board.decrementable) and (-alpha > -Board.decrementable):
                 pvs_beta = alpha + 1
 
-        if (sequence_number != Board.sequence_number):
+        if sequence_number != Board.sequence_number:
             return
-        if (self.evaluation > Board.decrementable):
+        if self.evaluation > Board.decrementable:
             self.evaluation -= Board.ply_decrement
-        elif (self.evaluation < -Board.decrementable):
+        elif self.evaluation < -Board.decrementable:
             self.evaluation += Board.ply_decrement
-#        if (hashKey >= 0):
-#            board.hash1.setHash(self, hashKey, evalType, depth)
-
+        if hash_value:
+            print('Write to movedict')
+            Board.movedict[hash_value] = (
+            self.myPieces, self.opponentPieces, self.best_move, eval_type, self.forced, self.evaluation, depth)
 
     def __repr__(self):
         ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (self.myPieces, self.opponentPieces)
         board_pieces = utils.PiecesOnBoard(self.myPieces, self.opponentPieces)
-        for i in range(5): ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'
+        for i in range(5):
+            ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'
         return ff
 
 
@@ -302,13 +298,12 @@ class Boardmove(Board):
         super().__init__()
         self.previousPosition = previousPosition
         captures = previousPosition.opponentPieces & move
-        if (captures != 0):
+        if captures != 0:
             self.opponentPieces = utils.NegBit(previousPosition.opponentPieces ^ captures)
             move ^= captures
             self.alreadyVisited = previousPosition.alreadyVisited | move
             self.myPieces = utils.NegBit(previousPosition.myPieces ^ move)
         else:
-            oppp = previousPosition.opponentPieces
-            self.opponentPieces = previousPosition.myPieces ^ move
-            self.myPieces = utils.PosBit(oppp)
+            self.opponentPieces, self.myPieces = previousPosition.myPieces ^ move, utils.PosBit(
+                previousPosition.opponentPieces)
             self.alreadyVisited = 0
