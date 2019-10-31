@@ -2,7 +2,6 @@ import os
 import sys
 
 sys.path.append(os.path.realpath('..'))
-from board.Board import Board
 from board.Board import Boardmove
 from engine.MoveGenerator import MoveGenerator
 
@@ -152,3 +151,5 @@ class Search:
             return True
         else:
             return False
+
+

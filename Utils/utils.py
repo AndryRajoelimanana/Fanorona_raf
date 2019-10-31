@@ -66,3 +66,11 @@ def get_bit(piece):
 
 def rshift(val, n):
     return (val & 0xffffffffffffffff) >> n
+
+
+def pmv(nn):
+    print(ShowBoard(nn, 0))
+
+
+def pbrd(nn,nn1):
+    print(ShowBoard(nn, nn1))

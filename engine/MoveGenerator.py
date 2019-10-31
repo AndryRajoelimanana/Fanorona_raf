@@ -27,15 +27,13 @@ class MoveGenerator(object):
         self.board = board
         self.reset(board)
         self.captureType = 3
-        self.nextSetvalue = self.GeneratorNextSet()
+        self.nextSetvalue = self.generate_next_set()
 
     def reset(self, board):
         self.board = board
-        self.moveSetIndex = -1
-        self.set = 0
-        self.madeCapture = False
+        self.made_capture = False
         myPieces = board.myPieces
-        self.nextSetvalue = self.GeneratorNextSet()
+        self.nextSetvalue = self.generate_next_set()
 
         if board.mid_capture():
             move = myPieces ^ board.previousPosition.myPieces
@@ -64,7 +62,7 @@ class MoveGenerator(object):
         except:
             return -1
 
-    def GeneratorNextSet(self):
+    def generate_next_set(self):
         sfrom = self.storedFrom
         sto = self.storedTo
         target = self.board.opponentPieces
@@ -76,8 +74,8 @@ class MoveGenerator(object):
         set_ = (movesV & (target >> 2 * item))
         if set_ != 0:
             shift = item
-            made_capture = True
-            yield self.nextElement(capture_type, shift, set_, made_capture)
+            self.made_capture = True
+            yield self.next_element(capture_type, shift, set_, self.made_capture)
 
         # horizontal forward
         item = Bits.shift_horizontal
@@ -85,8 +83,8 @@ class MoveGenerator(object):
         set_ = (movesH & (target >> 2 * item))
         if set_ != 0:
             shift = item
-            made_capture = True
-            yield self.nextElement(capture_type, shift, set_, made_capture)
+            self.made_capture = True
+            yield self.next_element(capture_type, shift, set_, self.made_capture)
 
         # Slant forward
         item = Bits.shift_slant
@@ -94,10 +92,10 @@ class MoveGenerator(object):
         self.storedFrom = sfrom
         movesS = self.getmoves(sfrom, sto, item)
         set_ = (movesS & (target >> 2 * item))
-        if (set_ != 0):
+        if set_ != 0:
             shift = item
-            made_capture = True
-            yield self.nextElement(capture_type, shift, set_, made_capture)
+            self.made_capture = True
+            yield self.next_element(capture_type, shift, set_, self.made_capture)
 
         # Backslant forward
         item = Bits.shift_backslant
@@ -105,8 +103,8 @@ class MoveGenerator(object):
         set_ = (movesB & (target >> 2 * item))
         if set_ != 0:
             shift = item
-            made_capture = True
-            yield self.nextElement(capture_type, shift, set_, made_capture)
+            self.made_capture = True
+            yield self.next_element(capture_type, shift, set_, self.made_capture)
 
         # vertical backward
         item = Bits.shift_vertical
@@ -114,66 +112,66 @@ class MoveGenerator(object):
         set_ = (movesV & (target << item))
         if set_ != 0:
             shift = item
-            made_capture = True
-            yield self.nextElement(capture_type, shift, set_, made_capture)
+            self.made_capture = True
+            yield self.next_element(capture_type, shift, set_, self.made_capture)
 
         # horizontal backward
         item = Bits.shift_horizontal
         set_ = (movesH & (target << item))
         if set_ != 0:
             shift = item
-            made_capture = True
-            yield self.nextElement(capture_type, shift, set_, made_capture)
+            self.made_capture = True
+            yield self.next_element(capture_type, shift, set_, self.made_capture)
 
         # slant backward
         item = Bits.shift_slant
         set_ = (movesS & (target << item))
         if set_ != 0:
             shift = item
-            made_capture = True
-            yield self.nextElement(capture_type, shift, set_, made_capture)
+            self.made_capture = True
+            yield self.next_element(capture_type, shift, set_, self.made_capture)
 
         # Backslant  backward
         item = Bits.shift_backslant
         set_ = (movesB & (target << item))
         if set_ != 0:
             shift = item
-            made_capture = True
-            yield self.nextElement(capture_type, shift, set_, made_capture)
+            self.made_capture = True
+            yield self.next_element(capture_type, shift, set_, self.made_capture)
 
         # Shuffle
         if self.board.mid_capture():
             capture_type = MoveGenerator.no_more_moves
             set_ = 1
-            return self.nextElement(capture_type, 0, set_, False)
+            return self.next_element(capture_type, 0, set_, False)
 
-        elif self.madeCapture:
+        elif self.made_capture:
             capture_type = MoveGenerator.no_more_moves
-            return self.nextElement(capture_type, 0, set_, False)
+            return self.next_element(capture_type, 0, set_, False)
 
         capture_type = MoveGenerator.no_capture
         set_ = movesV
         if set_ != 0:
             shift = Bits.shift_vertical
-            yield self.nextElement(capture_type, shift, set_, False)
+            yield self.next_element(capture_type, shift, set_, False)
 
         set_ = movesH
         if set_ != 0:
             shift = Bits.shift_horizontal
-            yield self.nextElement(capture_type, shift, set_, False)
+            yield self.next_element(capture_type, shift, set_, False)
 
         set_ = movesS
         if set_ != 0:
             shift = Bits.shift_slant
-            yield self.nextElement(capture_type, shift, set_, False)
+            yield self.next_element(capture_type, shift, set_, False)
 
         set_ = movesB
         if set_ != 0:
             shift = Bits.shift_backslant
-            yield self.nextElement(capture_type, shift, set_, False)
+            yield self.next_element(capture_type, shift, set_, False)
 
         capture_type = MoveGenerator.no_more_moves
-        yield self.nextElement(capture_type, 0, set_, False)
+        yield self.next_element(capture_type, 0, set_, False)
         return
 
     def hasCapture(self):
@@ -183,7 +181,7 @@ class MoveGenerator(object):
     def hasMoreElements(self):
         return (self.captureType != MoveGenerator.no_more_moves)
 
-    def nextElement(self, captureType, shift, set_, madeCapture):
+    def next_element(self, captureType, shift, set_, madeCapture):
 
         self.captureType = captureType
         bit = set_
@@ -216,20 +214,19 @@ class MoveGenerator(object):
         i = MoveGenerator.arbitraryMoveIndex
         MoveGenerator.arbitraryMoveIndex += 1
         moveGenerator = MoveGenerator(board)
-        movegen = moveGenerator.GeneratorNextSet()
-        while (moveGenerator.hasMoreElements()):
-            move = next(movegen)
+        # movegen = moveGenerator.GeneratorNextSet()
+        while moveGenerator.hasMoreElements():
+            move = moveGenerator.nextSet()
             i -= 1
-            if (i < 0):
-                # print('arbitrary move = %i and capture type = %i'% (move, moveGenerator.captureType))
-                newmove = Boardmove(board, move)
-                return newmove
+            if i < 0:
+                new_move = Boardmove(board, move)
+                return new_move
         MoveGenerator.arbitraryMoveIndex = 1
         newmg = MoveGenerator(board)
         move = newmg.nextSet()
-        newmove = Boardmove(board, move)
+        new_move = Boardmove(board, move)
         print('arbitrary move A =', move)
-        return newmove
+        return new_move
 
 
 

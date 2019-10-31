@@ -84,7 +84,6 @@ class Evaluation:
 
     @staticmethod
     def evaluate(b, alpha=-9223372036854775808, beta=9223372036854775807, depth=-9223372036854775808):
-        from board import Board
         my_pieces = b.myPieces & Bits.on_board
         opponent_pieces = b.opponentPieces & Bits.on_board
         my_piece_count = Bits.count(my_pieces)
@@ -98,7 +97,7 @@ class Evaluation:
         if (my_attacks & opponent_pieces) != 0:
             opp_piece_count -= 1
             if opp_piece_count == 0:
-                b.evaluation = my_piece_count * Board.won_position - Board.ply_decrement
+                b.evaluation = my_piece_count * b.won_position - b.ply_decrement
                 return True
             if depth > Evaluation.capture_depth:
                 return False
@@ -118,7 +117,7 @@ class Evaluation:
         if (my_active == 0) or ((attacked & my_active) != attacked) or ((attacked & (attacked - 1)) != 0):
             my_piece_count -= 1
             if my_piece_count == 0:
-                b.evaluation = -(opp_piece_count * Board.won_position - 4 * Board.ply_decrement)
+                b.evaluation = -(opp_piece_count * b.won_position - 4 * b.ply_decrement)
                 return True
             if depth > Evaluation.capture_depth:
                 return False
@@ -159,7 +158,7 @@ class Evaluation:
             defendingTrapped = opp_piece_count - oppActivity
             safeForDefense = oppSafeMoves
         else:
-            attacking = False;
+            attacking = False
             attackingPieces = opponent_pieces
             attackingActivity = oppActivity
             attackingTrapped = opp_piece_count - oppActivity
@@ -178,7 +177,7 @@ class Evaluation:
                                                          ~Evaluation.active_squares)) == 0)
                 and ((safeForDefense & Evaluation.nextTo(attackingPieces) &
                       Evaluation.nextTo(defendingPieces)) == 0)):
-            b.evaluation = int(attackingActivity * Board.won_position - (Board.won_position / 2) + control)
+            b.evaluation = int(attackingActivity * b.won_position - (b.won_position / 2) + control)
             if not (attacking):
                 b.evaluation = -b.evaluation
             return True

@@ -9,8 +9,7 @@ Created on Tue Oct 22 13:44:23 2019
 from Utils import utils
 from Utils.Bits import Bits
 from engine.MoveGenerator import MoveGenerator
-from .Evaluation import Evaluation
-
+from board.Evaluation import Evaluation
 
 class Board:
     # Principal Variation Search
@@ -164,17 +163,18 @@ class Board:
 
     #    @property
     def alpha_beta(self, depth, alpha, beta, sequence_number):
+        print("Run alpha alpha_beta(self, %s, %s, %s, %s)" % (depth, alpha, beta, sequence_number))
+        utils.pbrd(self.myPieces, self.opponentPieces)
         Board.nodeCount += 1
         self.hasPrincipalVariation = False
-        hash_value = None
+        hash_value = self.gethash()
         if self.mid_capture():
             eval_bool = Evaluation.evaluate(self, alpha, beta, depth)
             if (depth <= 0) and eval_bool:
                 Board.leafCount += 1
                 return
-            hash_value = self.gethash()
             if hash_value in Board.movedict.keys():
-                print('Already in move dict')
+                # print('Already in move dict')
                 stored_value = Board.movedict[hash_value]
                 self.best_move = stored_value[2]
                 stored_eval_type = stored_value[3]
@@ -224,10 +224,11 @@ class Board:
         self.evaluation = -Board.maxsize
         eval_type = Board.eval_upper_bound
         pvs_beta = beta
+
         # Main alpha-beta loop
         while move >= 0:
             self.set_child(move)
-
+            print('move = %s , depth = %s' % (move, depth))
             # if first move , check if it is already hashed
             if not self.child.mid_capture():  # Not midCapture
                 self.child.alpha_beta(new_depth, -pvs_beta, -alpha, sequence_number)
@@ -273,6 +274,8 @@ class Board:
                 move = self.moveGenerator.nextSet()
             if Board.pvs and (alpha < Board.decrementable) and (-alpha > -Board.decrementable):
                 pvs_beta = alpha + 1
+            utils.pmv(move)
+
 
         if sequence_number != Board.sequence_number:
             return
@@ -283,7 +286,9 @@ class Board:
         if hash_value:
             print('Write to movedict')
             Board.movedict[hash_value] = (
-            self.myPieces, self.opponentPieces, self.best_move, eval_type, self.forced, self.evaluation, depth)
+                self.myPieces, self.opponentPieces, self.best_move, eval_type, self.forced, self.evaluation, depth)
+        if depth <= -25:
+            print('debug')
 
     def __repr__(self):
         ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (self.myPieces, self.opponentPieces)
@@ -307,3 +312,23 @@ class Boardmove(Board):
             self.opponentPieces, self.myPieces = previousPosition.myPieces ^ move, utils.PosBit(
                 previousPosition.opponentPieces)
             self.alreadyVisited = 0
+
+
+class SetBoard(Board):
+    def __init__(self, my_pieces=Bits.initial_top, opp_pieces=Bits.initial_bot):
+        super().__init__()
+        self.myPieces = my_pieces
+        self.opponentPieces = opp_pieces
+
+
+if __name__ == '__main__':
+    hh = Board()
+    b1 = Boardmove(hh, 17609382707200)
+    b2 = Boardmove(b1, 0)
+    b1 = Boardmove(b2, 17600780175361)
+    b2 = Boardmove(b1, 0)
+    b2.alpha_beta(10, -25, 25, 0)
+
+
+#    ff = Search(b2, ply=3)
+#    ff.search()
