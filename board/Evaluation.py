@@ -49,38 +49,67 @@ class Evaluation:
 
     @staticmethod
     def attack(attackers, open_board):
+        """
+        Compute attacks by a player
+
+        :param attackers: attacking piece
+        :param open_board: open board (not my pieces, nor opponent pieces)
+        :return: all positions that can be eaten by the attackers
+
+        """
 
         shift_type = Bits.shift_vertical
-        moves = getMoves(attackers, open_board, shift_type)
+        moves = get_moves(attackers, open_board, shift_type)
         unsafe_pieces = eaten_pieces(moves, shift_type)
 
         shift_type = Bits.shift_horizontal
-        moves = getMoves(attackers, open_board, shift_type)
+        moves = get_moves(attackers, open_board, shift_type)
         unsafe_pieces |= eaten_pieces(moves, shift_type)
 
         attackers &= Bits.diagonal
 
         shift_type = Bits.shift_slant
-        moves = getMoves(attackers, open_board, shift_type)
+        moves = get_moves(attackers, open_board, shift_type)
         unsafe_pieces |= eaten_pieces(moves, shift_type)
 
         shift_type = Bits.shift_backslant
-        moves = getMoves(attackers, open_board, shift_type)
+        moves = get_moves(attackers, open_board, shift_type)
         unsafe_pieces |= eaten_pieces(moves, shift_type)
 
         return unsafe_pieces
 
     @staticmethod
-    def nextTo(s):
+    def next_to(s):
+        """
+        Compute positions that are adjacent to a particular pieces
+        :param s:
+        :return:
+        """
         n = (rshift(s, Bits.shift_vertical)) | (s << Bits.shift_vertical)
         s |= (n & ~Bits.diagonal)
         return n | (rshift(s, Bits.shift_horizontal)) | (s << Bits.shift_horizontal)
 
     @staticmethod
     def activity(pieces, safe_moves):
-        act = (Evaluation.active_squares & Evaluation.nextTo(safe_moves)) | Evaluation.nextTo(
+        """
+        Compute Pieces that can perform a safe move into an active square
+
+        :param pieces:
+            my pieces
+        :param safe_moves:
+            open position and not opponent attack
+        :return:
+            Pieces that can perform a safe move into an active square
+        """
+        act = (Evaluation.active_squares & Evaluation.next_to(safe_moves)) | Evaluation.next_to(
             Evaluation.active_squares & safe_moves)
-        return (act | (Evaluation.active_squares & Evaluation.nextTo(act & pieces))) & pieces
+        return (act | (Evaluation.active_squares & Evaluation.next_to(act & pieces))) & pieces
+
+
+    def score_capture(self):
+        # TODO
+        pass
+
 
     @staticmethod
     def evaluate(b, alpha=-9223372036854775808, beta=9223372036854775807, depth=-9223372036854775808):
@@ -88,6 +117,7 @@ class Evaluation:
         opponent_pieces = b.opponentPieces & Bits.on_board
         my_piece_count = Bits.count(my_pieces)
         opp_piece_count = Bits.count(opponent_pieces)
+
         if (my_piece_count <= 2) and (opp_piece_count <= 2):
             return True
 
@@ -96,10 +126,10 @@ class Evaluation:
         # will next move is a capture return evaluate = True
         if (my_attacks & opponent_pieces) != 0:
             opp_piece_count -= 1
-            if opp_piece_count == 0:
+            if opp_piece_count == 0:  # will capture win?
                 b.evaluation = my_piece_count * b.won_position - b.ply_decrement
                 return True
-            if depth > Evaluation.capture_depth:
+            if depth > Evaluation.capture_depth:  # make a deeper search
                 return False
             if my_piece_count >= opp_piece_count:
                 b.evaluation = (my_piece_count - opp_piece_count) * (
@@ -112,14 +142,23 @@ class Evaluation:
         # Run the following if my piece is not capturing
         opp_attacks = Evaluation.attack(opponent_pieces, open_position)
         my_safe_moves = open_position & ~opp_attacks
+
+        # my_active = my active piece that can move safely
         my_active = Evaluation.activity(my_pieces, my_safe_moves)
+
+        # attacked: my attacked piece
         attacked = my_pieces & opp_attacks
+
+        # Check if:
+        #   - any of my piece can't move safely (ever move to capture or to trapped position)
+        #   - attacked pieces are already trap
+        #   - too many capture to evade
         if (my_active == 0) or ((attacked & my_active) != attacked) or ((attacked & (attacked - 1)) != 0):
             my_piece_count -= 1
             if my_piece_count == 0:
                 b.evaluation = -(opp_piece_count * b.won_position - 4 * b.ply_decrement)
                 return True
-            if depth > Evaluation.capture_depth:
+            if depth > Evaluation.capture_depth:      # make a deeper search
                 return False
         elif attacked != 0:
             if depth > Evaluation.threat_depth:
@@ -147,7 +186,7 @@ class Evaluation:
             else:
                 b.evaluation = control - (opp_piece_count - my_piece_count) * Evaluation.ratios[my_piece_count]
             return True
-        if (myActivity > oppActivity):
+        if myActivity > oppActivity:
             attacking = True
             attackingPieces = my_pieces
             attackingActivity = myActivity
@@ -173,10 +212,10 @@ class Evaluation:
             beta = -x
         if (((defendingActivity + defendingTrapped) == 1)
                 and (attackingActivity >= 2) and (attackingTrapped == 0)
-                and ((safeForDefense & Evaluation.nextTo(attackingPieces &
-                                                         ~Evaluation.active_squares)) == 0)
-                and ((safeForDefense & Evaluation.nextTo(attackingPieces) &
-                      Evaluation.nextTo(defendingPieces)) == 0)):
+                and ((safeForDefense & Evaluation.next_to(attackingPieces &
+                                                          ~Evaluation.active_squares)) == 0)
+                and ((safeForDefense & Evaluation.next_to(attackingPieces) &
+                      Evaluation.next_to(defendingPieces)) == 0)):
             b.evaluation = int(attackingActivity * b.won_position - (b.won_position / 2) + control)
             if not (attacking):
                 b.evaluation = -b.evaluation
@@ -262,7 +301,7 @@ class Evaluation:
         if ((evalb + Evaluation.max_positional_eval > alpha) and (evalb - Evaluation.max_positional_eval < beta)):
             space = defendingPieces
             while True:
-                newSpace = space | ((Evaluation.nextTo(space) & safeForDefense))
+                newSpace = space | ((Evaluation.next_to(space) & safeForDefense))
                 if (space == newSpace):
                     break
                 space = newSpace

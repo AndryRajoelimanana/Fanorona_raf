@@ -7,6 +7,7 @@ Created on Wed Oct 16 21:51:46 2019
 """
 
 from Utils.Bits import Bits
+from Utils.utils import *
 
 
 class Move(object):
@@ -25,16 +26,23 @@ class MoveGenerator(object):
 
     def __init__(self, board):
         self.board = board
+        self.capture_type = 3
+        self.set = 0
+        self.shift = None
+        self.storedFrom = None
+        self.storedTo = None
+        self.made_capture = False
         self.reset(board)
-        self.captureType = 3
-        self.nextSetvalue = self.generate_next_set()
-
+        self.nextSetvalue = self.find_next_element()
+        
     def reset(self, board):
         self.board = board
         self.made_capture = False
         myPieces = board.myPieces
-        self.nextSetvalue = self.generate_next_set()
 
+        # if mid-capture use the same moving piece for the next move else you can use any piece that can eat
+        #
+        # get moving piece
         if board.mid_capture():
             move = myPieces ^ board.previousPosition.myPieces
             self.storedFrom = myPieces & move
@@ -53,16 +61,13 @@ class MoveGenerator(object):
             self.storedTo = Bits.on_board & ~(myPieces | board.opponentPieces)
             return
 
-    def getmoves(self, from_square, to_square, movetype):
-        return (from_square & rshift(to_square, movetype)) | (to_square & rshift(from_square, movetype))
-
-    def nextSet(self):
+    def generate_next_set(self):
         try:
             return next(self.nextSetvalue)
         except:
             return -1
 
-    def generate_next_set(self):
+    def find_next_element(self):
         sfrom = self.storedFrom
         sto = self.storedTo
         target = self.board.opponentPieces
@@ -70,41 +75,41 @@ class MoveGenerator(object):
         # vertical forward
         capture_type = MoveGenerator.capture_forward
         item = Bits.shift_vertical
-        movesV = self.getmoves(sfrom, sto, item)
+        movesV = get_moves(sfrom, sto, item)
         set_ = (movesV & (target >> 2 * item))
         if set_ != 0:
             shift = item
             self.made_capture = True
-            yield self.next_element(capture_type, shift, set_, self.made_capture)
+            yield capture_type, shift, set_, self.made_capture
 
         # horizontal forward
         item = Bits.shift_horizontal
-        movesH = self.getmoves(sfrom, sto, item)
+        movesH = get_moves(sfrom, sto, item)
         set_ = (movesH & (target >> 2 * item))
         if set_ != 0:
             shift = item
             self.made_capture = True
-            yield self.next_element(capture_type, shift, set_, self.made_capture)
+            yield capture_type, shift, set_, self.made_capture
 
         # Slant forward
         item = Bits.shift_slant
         sfrom &= Bits.diagonal
         self.storedFrom = sfrom
-        movesS = self.getmoves(sfrom, sto, item)
+        movesS = get_moves(sfrom, sto, item)
         set_ = (movesS & (target >> 2 * item))
         if set_ != 0:
             shift = item
             self.made_capture = True
-            yield self.next_element(capture_type, shift, set_, self.made_capture)
+            yield capture_type, shift, set_, self.made_capture
 
         # Backslant forward
         item = Bits.shift_backslant
-        movesB = self.getmoves(sfrom, sto, item)
+        movesB = get_moves(sfrom, sto, item)
         set_ = (movesB & (target >> 2 * item))
         if set_ != 0:
             shift = item
             self.made_capture = True
-            yield self.next_element(capture_type, shift, set_, self.made_capture)
+            yield capture_type, shift, set_, self.made_capture
 
         # vertical backward
         item = Bits.shift_vertical
@@ -113,7 +118,7 @@ class MoveGenerator(object):
         if set_ != 0:
             shift = item
             self.made_capture = True
-            yield self.next_element(capture_type, shift, set_, self.made_capture)
+            yield capture_type, shift, set_, self.made_capture
 
         # horizontal backward
         item = Bits.shift_horizontal
@@ -121,7 +126,7 @@ class MoveGenerator(object):
         if set_ != 0:
             shift = item
             self.made_capture = True
-            yield self.next_element(capture_type, shift, set_, self.made_capture)
+            yield capture_type, shift, set_, self.made_capture
 
         # slant backward
         item = Bits.shift_slant
@@ -129,7 +134,7 @@ class MoveGenerator(object):
         if set_ != 0:
             shift = item
             self.made_capture = True
-            yield self.next_element(capture_type, shift, set_, self.made_capture)
+            yield capture_type, shift, set_, self.made_capture
 
         # Backslant  backward
         item = Bits.shift_backslant
@@ -137,75 +142,90 @@ class MoveGenerator(object):
         if set_ != 0:
             shift = item
             self.made_capture = True
-            yield self.next_element(capture_type, shift, set_, self.made_capture)
+            yield capture_type, shift, set_, self.made_capture
 
         # Shuffle
+        #
+        # No shuffle if mid capture
         if self.board.mid_capture():
             capture_type = MoveGenerator.no_more_moves
             set_ = 1
-            return self.next_element(capture_type, 0, set_, False)
-
+            return capture_type, 0, set_, False
+        # No shuffle if there is another move that is able to eat. You must eat
         elif self.made_capture:
             capture_type = MoveGenerator.no_more_moves
-            return self.next_element(capture_type, 0, set_, False)
+            return capture_type, 0, set_, False
 
         capture_type = MoveGenerator.no_capture
         set_ = movesV
         if set_ != 0:
             shift = Bits.shift_vertical
-            yield self.next_element(capture_type, shift, set_, False)
+            yield capture_type, shift, set_, False
 
         set_ = movesH
         if set_ != 0:
             shift = Bits.shift_horizontal
-            yield self.next_element(capture_type, shift, set_, False)
+            yield capture_type, shift, set_, False
 
         set_ = movesS
         if set_ != 0:
             shift = Bits.shift_slant
-            yield self.next_element(capture_type, shift, set_, False)
+            yield capture_type, shift, set_, False
 
         set_ = movesB
         if set_ != 0:
             shift = Bits.shift_backslant
-            yield self.next_element(capture_type, shift, set_, False)
+            yield capture_type, shift, set_, False
 
         capture_type = MoveGenerator.no_more_moves
-        yield self.next_element(capture_type, 0, set_, False)
+        yield capture_type, 0, set_, False
         return
 
     def hasCapture(self):
-        return (self.captureType == MoveGenerator.capture_forward) | (
-                    self.captureType == MoveGenerator.capture_backward)
+        return (self.capture_type == MoveGenerator.capture_forward) | (
+                self.capture_type == MoveGenerator.capture_backward)
 
     def hasMoreElements(self):
-        return (self.captureType != MoveGenerator.no_more_moves)
+        return self.capture_type != MoveGenerator.no_more_moves
 
-    def next_element(self, captureType, shift, set_, madeCapture):
+    def nextSet(self):
+        # get all pieces that can eat in a specific direction and return move for each piece (last bit first) 
+        if self.set == 0:
+            try:
+                capture_type, shift, set_, made_capture = self.generate_next_set()
+            except:
+                return -1
+            self.capture_type = capture_type
+            self.set = set_
+            self.shift = shift
 
-        self.captureType = captureType
-        bit = set_
-        bit &= -bit
-        set_ ^= bit
-        if captureType == MoveGenerator.capture_forward:
-            retval = bit | (bit << shift)
-            bit <<= 2 * shift
+        # get each set of moving piece, last bit comes first
+        bit = Bits.last_bit(self.set)
+
+        # remove last bit from self.set
+        self.set ^= bit
+
+        # get move value for each piece that can move
+        if self.capture_type == MoveGenerator.capture_forward:
+            move_value = bit | (bit << self.shift)
+            bit <<= 2 * self.shift
+            # get eaten pieces for each move
             while (bit & self.board.opponentPieces) != 0:
-                retval |= bit
-                bit <<= shift
-            return retval
-        elif captureType == MoveGenerator.capture_backward:
-            retval = bit | (bit << shift)
-            bit = rshift(bit, shift)
+                move_value |= bit
+                bit <<= self.shift
+            return move_value
+        elif self.capture_type == MoveGenerator.capture_backward:
+            move_value = bit | (bit << self.shift)
+            bit = rshift(bit, self.shift)
             while (bit & self.board.opponentPieces) != 0:
-                retval |= bit
-                bit = rshift(bit, shift)
-            return retval
-        elif captureType == MoveGenerator.no_capture:
-            return bit | (bit << shift)
-        elif captureType == MoveGenerator.pass_move:
+                move_value |= bit
+                bit = rshift(bit, self.shift)
+            return move_value
+        elif self.capture_type == MoveGenerator.no_capture:
+            return bit | (bit << self.shift)
+        elif self.capture_type == MoveGenerator.pass_move:
             return 0
-        elif captureType == MoveGenerator.no_more_moves:
+        elif self.capture_type == MoveGenerator.no_more_moves:
             return -1
 
     @staticmethod
@@ -214,7 +234,6 @@ class MoveGenerator(object):
         i = MoveGenerator.arbitraryMoveIndex
         MoveGenerator.arbitraryMoveIndex += 1
         moveGenerator = MoveGenerator(board)
-        # movegen = moveGenerator.GeneratorNextSet()
         while moveGenerator.hasMoreElements():
             move = moveGenerator.nextSet()
             i -= 1
@@ -225,13 +244,4 @@ class MoveGenerator(object):
         newmg = MoveGenerator(board)
         move = newmg.nextSet()
         new_move = Boardmove(board, move)
-        print('arbitrary move A =', move)
         return new_move
-
-
-
-def rshift(val, n):
-    # return (val % 0x10000000000000000) >> n
-    return (val & 0xffffffffffffffff) >> n
-    # return val >> n
-

@@ -51,6 +51,6 @@ class Bits:
 
 
     @staticmethod
-    def lastBit(bitboard):
+    def last_bit(bitboard):
         return bitboard & -bitboard
 

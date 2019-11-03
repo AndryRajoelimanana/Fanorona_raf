@@ -304,7 +304,7 @@ class Boardmove(Board):
         self.previousPosition = previousPosition
         captures = previousPosition.opponentPieces & move
         if captures != 0:
-            self.opponentPieces = utils.NegBit(previousPosition.opponentPieces ^ captures)
+            self.opponentPieces = utils.NegBit((previousPosition.opponentPieces ^ captures) | Bits.captured)
             move ^= captures
             self.alreadyVisited = previousPosition.alreadyVisited | move
             self.myPieces = utils.NegBit(previousPosition.myPieces ^ move)

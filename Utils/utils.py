@@ -1,25 +1,59 @@
 from Utils.Bits import Bits
+import re
+import time
+
+
+def timeit(method):
+    def timed(*args, **kw):
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+        if 'log_time' in kw:
+            name = kw.get('log_name', method.__name__.upper())
+            kw['log_time'][name] = int((te - ts) * 1000)
+        else:
+            print('%r  %2.6f ms' % (method.__name__, (te - ts) * 1000))
+        return result
+
+    return timed
 
 
 def PiecesOnBoard(pieces, pieces2):
-    """Returns pieces array"""
+    """Returns pieces array, need optimization"""
     stones = [[0] * 9, [0] * 9, [0] * 9, [0] * 9, [0] * 9]
     for i in range(5):
         for j in range(9):
-            if ((pieces & Bits.at(i, j)) != 0):
+            if (pieces & Bits.at(i, j)) != 0:
                 stones[i][j] = '1'
-            elif ((pieces2 & Bits.at(i, j)) != 0):
+            elif (pieces2 & Bits.at(i, j)) != 0:
                 stones[i][j] = '2'
             else:
                 stones[i][j] = '.'
     return stones
 
 
+# @timeit
+# def PiecesOnBoard1(pieces, pieces2):
+#     """Returns pieces array"""
+#     stones = [[0] * 9, [0] * 9, [0] * 9, [0] * 9, [0] * 9]
+#     for matchtuple in re.finditer('1', format(pieces, '064b')):
+#         match = 64 - matchtuple.start()
+#         if ()
+#         stones[row][col] = '2'
+#     for matchtuple in re.finditer('1', format(pieces2,'064b')):
+#         match = 64 - matchtuple.start()
+#         row = (match // 10)
+#         col = (match % 10) - 1
+#         stones[row][col] = '1'
+#     return stones
+
+
 def ShowBoard(pieces, pieces2):
     """Showing pieces on the board"""
     board_pieces = PiecesOnBoard(pieces, pieces2)
     ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (pieces, pieces2)
-    for i in range(5): ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'
+    for i in range(5):
+        ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'
     return ff
 
 
@@ -33,13 +67,13 @@ def eaten_pieces(moves, movetype):
     return rshift(moves, movetype) | (moves << (2 * movetype))
 
 
-def getMoves(attackers, open_board, movetype):
+def get_moves(attackers, open_board, movetype):
     """Returns moves for a specific move type"""
     return (attackers & rshift(open_board, movetype)) | (open_board & rshift(attackers, movetype))
 
 
 def NegBit(val):
-    """Returs Negative Bit"""
+    """Returns Negative Bit"""
     if (val | (1 << 63)) > (1 << 63):
         val = val - (1 << 63)
     return val
@@ -72,5 +106,5 @@ def pmv(nn):
     print(ShowBoard(nn, 0))
 
 
-def pbrd(nn,nn1):
+def pbrd(nn, nn1):
     print(ShowBoard(nn, nn1))
