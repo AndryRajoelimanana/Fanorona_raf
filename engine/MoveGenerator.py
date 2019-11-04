@@ -34,17 +34,22 @@ class MoveGenerator(object):
         self.made_capture = False
         self.reset(board)
         self.nextSetvalue = self.find_next_element()
-        
+
     def reset(self, board):
         self.board = board
         self.made_capture = False
         myPieces = board.myPieces
+        self.set = 0
+        self.shift = None
+        self.storedFrom = None
+        self.storedTo = None
+        self.nextSetvalue = self.find_next_element()
 
         # if mid-capture use the same moving piece for the next move else you can use any piece that can eat
         #
         # get moving piece
         if board.mid_capture():
-            move = myPieces ^ board.previousPosition.myPieces
+            move = (myPieces & Bits.on_board) ^ (board.previousPosition.myPieces & Bits.on_board)
             self.storedFrom = myPieces & move
             if (move & (move << Bits.shift_vertical) & Bits.on_board) != 0:
                 move = (move << Bits.shift_vertical) | rshift(move, Bits.shift_vertical)
@@ -65,12 +70,13 @@ class MoveGenerator(object):
         try:
             return next(self.nextSetvalue)
         except:
-            return -1
+            return MoveGenerator.no_more_moves, 0, -1, False
 
     def find_next_element(self):
         sfrom = self.storedFrom
         sto = self.storedTo
         target = self.board.opponentPieces
+        self.made_capture = False
 
         # vertical forward
         capture_type = MoveGenerator.capture_forward
@@ -78,8 +84,10 @@ class MoveGenerator(object):
         movesV = get_moves(sfrom, sto, item)
         set_ = (movesV & (target >> 2 * item))
         if set_ != 0:
-            shift = item
+            self.shift = item
             self.made_capture = True
+            self.capture_type = capture_type
+            self.set = set_
             yield capture_type, shift, set_, self.made_capture
 
         # horizontal forward
@@ -148,12 +156,16 @@ class MoveGenerator(object):
         #
         # No shuffle if mid capture
         if self.board.mid_capture():
-            capture_type = MoveGenerator.no_more_moves
+            capture_type = MoveGenerator.pass_move
             set_ = 1
+            yield capture_type, 0, set_, False
+            self.capture_type = MoveGenerator.no_more_moves
             return capture_type, 0, set_, False
         # No shuffle if there is another move that is able to eat. You must eat
         elif self.made_capture:
-            capture_type = MoveGenerator.no_more_moves
+            self.capture_type = MoveGenerator.no_more_moves
+            yield capture_type, 0, set_, False
+            self.capture_type = MoveGenerator.no_more_moves
             return capture_type, 0, set_, False
 
         capture_type = MoveGenerator.no_capture
@@ -194,7 +206,7 @@ class MoveGenerator(object):
             try:
                 capture_type, shift, set_, made_capture = self.generate_next_set()
             except:
-                return -1
+                print('error')
             self.capture_type = capture_type
             self.set = set_
             self.shift = shift
@@ -224,9 +236,12 @@ class MoveGenerator(object):
         elif self.capture_type == MoveGenerator.no_capture:
             return bit | (bit << self.shift)
         elif self.capture_type == MoveGenerator.pass_move:
+            self.capture_type = MoveGenerator.no_more_moves
             return 0
         elif self.capture_type == MoveGenerator.no_more_moves:
-            return -1
+            self.capture_type = MoveGenerator.no_more_moves
+            return 0
+        return -1
 
     @staticmethod
     def arbitraryMove(board):

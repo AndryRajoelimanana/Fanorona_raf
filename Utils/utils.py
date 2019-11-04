@@ -108,3 +108,24 @@ def pmv(nn):
 
 def pbrd(nn, nn1):
     print(ShowBoard(nn, nn1))
+
+
+def two_comp(val, bits):
+    """compute the 2's complement of int value val"""
+    if (val & (1 << (bits - 1))) != 0:  # if sign bit is set e.g., 8bit: 128-255
+        val = val - (1 << bits)  # compute negative value
+    return val
+
+
+def to64(val):
+    return format(val, '064b')
+
+
+def neg(val):
+    if val >= 0:
+        val = val - (1 << 64)
+    return val
+
+
+def pos(val):
+    return (1 << 63) - val

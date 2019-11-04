@@ -3,6 +3,7 @@ import sys
 
 sys.path.append(os.path.realpath('..'))
 from board.Board import Boardmove
+from board.Board import Board
 from engine.MoveGenerator import MoveGenerator
 
 import time
@@ -153,3 +154,10 @@ class Search:
             return False
 
 
+if __name__ == '__main__':
+    hh = Board(white_goes_first=False)
+#    b1 = Boardmove(hh, 17609382707200)
+#    b2 = Boardmove(b1, 0)
+    #    b2.alpha_beta(10, -22222222222222, 22222222222222, 0)
+    ff = Search(hh, ply=3)
+    ff.search()
