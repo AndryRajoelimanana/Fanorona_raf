@@ -19,11 +19,11 @@ class Search:
     currentEval = 0
     time_max = 5000
 
-    def __init__(self, board, ply=0):
+    def __init__(self, boardin, ply=3):
         self.stop = False
         self.watcher = None
         self.firstMove = None
-        self.board = board
+        self.board = boardin
         self.ply = ply
         self.move = None
         self.move_log = []
@@ -52,7 +52,7 @@ class Search:
             self.done()
             return
 
-        # self.search()
+        self.search()
 
     def get_stop(self):
         return self.stop
@@ -113,20 +113,25 @@ class Search:
             while True:
                 if sequence_number != Board.sequence_number:
                     self.abort()
+                    print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
                     return
                 self.board.alpha_beta(depth * Board.ply, alpha, beta, sequence_number)
                 Search.currentEval = self.board.evaluation
+                print("New Search: %s, %s, %s" % (self.board.myPieces, self.board.opponentPieces, depth))
                 aspirations += 1
+                print("Search eval: %s %s %s"%(Search.currentEval, alpha, beta))
                 if (current_milli_time() - start_time) > Search.time_max:
                     self.done()
+                    print("Time breakdown")
                     break
+                # print("Search eval: %s %s %s" % (Search.currentEval, alpha, beta))
                 if Search.currentEval >= beta:
                     beta = Board.maxsize
                 elif Search.currentEval <= alpha:
                     alpha = -Board.maxsize
                 else:
+                    print("Search break")
                     break
-                time.sleep(0)
 
             if Search.winning(previous_eval) and (not Search.between(0, previous_eval, Search.currentEval)):
                 Search.currentEval = previous_eval
@@ -140,7 +145,7 @@ class Search:
             depth += 1
             time.sleep(0)
 
-        self.done()
+        #self.done()
 
     @staticmethod
     def winning(evals):
@@ -148,16 +153,31 @@ class Search:
 
     @staticmethod
     def between(a, b, c):
-        if a <= b <= c:
-            return True
-        else:
-            return False
+        return (a >= b) != (c >= b)
 
 
 if __name__ == '__main__':
-    hh = Board(white_goes_first=False)
+    #hh = Board(white_goes_first=False)
 #    b1 = Boardmove(hh, 17609382707200)
 #    b2 = Boardmove(b1, 0)
-    #    b2.alpha_beta(10, -22222222222222, 22222222222222, 0)
+    from Utils import utils
+    from board.Board import SetBoard, Boardmove
+    board = ["none", "one", "none", "none", "none", "one", "none", "none", "one", "none", "none", "one", "one", "none",
+             "one", "one", "one", "none", "none", "none", "one", "none", "two", "none", "none", "one", "none", "two",
+             "none", "two", "none", "two", "two", "two", "none", "two", "two", "two", "two", "two", "none", "two",
+             "two", "two", "none", "two", "two", "two", "two", "two"]
+    #my_pieces, opp_pieces = utils.board_to_bit(boardin)
+    #print(my_pieces, opp_pieces)
+    hh = SetBoard(560172527255552, 13835058055468269052)
     ff = Search(hh, ply=3)
-    ff.search()
+    movelog=[]
+    bb = ff.board
+    while not bb.human_to_move():
+            ff = Search(bb, ply=3)
+            move = ff.board.best_move
+            bb = Boardmove(ff.board, move)
+            movelog.append(move)
+
+    print(movelog)
+    print(ff.board.best_move)
+    print(ff.move)

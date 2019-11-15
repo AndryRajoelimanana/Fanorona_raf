@@ -18,17 +18,28 @@ def timeit(method):
     return timed
 
 
-def PiecesOnBoard(pieces, pieces2):
+def bit_to_pieces(board):
+    new_board = ['none'] * 50
+    for i in range(49):
+        bits_at_i = (1 << i)
+        if board.myPieces & bits_at_i:
+            new_board[i + 1] = 'one'
+        elif board.opponentPieces & bits_at_i:
+            new_board[i + 1] = 'two'
+    return new_board
+
+
+def PiecesOnBoard(pieces, pieces2, p1='1', p2='2', p0='.'):
     """Returns pieces array, need optimization"""
     stones = [[0] * 9, [0] * 9, [0] * 9, [0] * 9, [0] * 9]
     for i in range(5):
         for j in range(9):
             if (pieces & Bits.at(i, j)) != 0:
-                stones[i][j] = '1'
+                stones[i][j] = p1
             elif (pieces2 & Bits.at(i, j)) != 0:
-                stones[i][j] = '2'
+                stones[i][j] = p2
             else:
-                stones[i][j] = '.'
+                stones[i][j] = p0
     return stones
 
 
@@ -49,7 +60,7 @@ def PiecesOnBoard(pieces, pieces2):
 
 
 def ShowBoard(pieces, pieces2):
-    """Showing pieces on the board"""
+    """Showing pieces on the boardin"""
     board_pieces = PiecesOnBoard(pieces, pieces2)
     ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (pieces, pieces2)
     for i in range(5):
@@ -129,3 +140,32 @@ def neg(val):
 
 def pos(val):
     return (1 << 63) - val
+
+
+def board_to_bit(board):
+    my_pieces = 0
+    opp_pieces = 0
+    for i in range(50):
+        if board[i] == 'two':
+            opp_pieces = opp_pieces + (1 << i)
+        elif board[i] == 'one':
+            my_pieces = my_pieces + (1 << i)
+    return my_pieces, opp_pieces
+
+
+def get_hash(Board, board, hash_value, alpha, beta, depth):
+    # print('Already in move dict')
+    if hash_value in Board.movedict.keys():
+        stored_value = Board.movedict[hash_value]
+        board.best_move = stored_value[2]
+        stored_eval_type = stored_value[3]
+        board.forced = stored_value[4]
+        stored_eval = stored_value[5]
+        stored_depth = stored_value[6]
+        if stored_depth >= depth:
+            if stored_eval_type == Board.eval_exact or (
+                    stored_eval_type == Board.eval_upper_bound and stored_eval <= alpha) or (
+                    stored_eval_type == Board.eval_lower_bound and stored_eval >= beta):
+                board.evaluation = stored_eval
+                return True
+    return False
