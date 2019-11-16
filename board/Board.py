@@ -176,9 +176,9 @@ class Board:
     def alpha_beta(self, depth, alpha, beta, sequence_number):
         # print("Run alpha alpha_beta(self, %s, %s, %s, %s)" % (depth, alpha, beta, sequence_number))
         # utils.pbrd(self.myPieces, self.opponentPieces)
-        print(" ")
-        print(" ")
-        print(" alphabeta :  %s   %s  %s  %s  %s" % (self.myPieces, self.opponentPieces, depth, alpha, beta))
+        # print(" ")
+        # print(" ")
+        # print(" alphabeta :  %s   %s  %s  %s  %s" % (self.myPieces, self.opponentPieces, depth, alpha, beta))
         Board.nodeCount += 1
         self.hasPrincipalVariation = False
         hash_value = self.gethash()
@@ -186,14 +186,14 @@ class Board:
             eval_bool = Evaluation.evaluate(self, alpha, beta, depth)
             if (depth <= 0) and eval_bool:
                 Board.leafCount += 1
-                print("Time for leaf evaluation")
+                # print("Time for leaf evaluation")
                 return
             if utils.get_hash(Board, self, hash_value, alpha, beta, depth):
                 if self.best_move >= 0 and (self.evaluation >= alpha) and (self.evaluation <= beta):
                     self.set_child(self.best_move)
                     self.child.hasPrincipalVariation = False
                     self.set_principal_variation()
-                print("in database")
+                # print("in database")
                 return
 
         if sequence_number != Board.sequence_number:
@@ -211,7 +211,7 @@ class Board:
             move_generator_is_set = True
             move = self.moveGenerator.nextSet()
             self.forced = not (self.moveGenerator.hasMoreElements())
-        print("Movegen= %s  %s"%(move, self.best_move))
+        # print("Movegen= %s  %s"%(move, self.best_move))
         first_move = move
         # Compute extensions
         new_depth = depth - Board.ply
@@ -222,7 +222,6 @@ class Board:
         #  - was shuffle
         #  - mid - capture
         if self.forced:
-            print("Forced")
             new_depth += Board.forced_move_extension
             # previous opponent move was a shuffle
             if self.was_shuffle():
@@ -230,10 +229,8 @@ class Board:
             else:
                 capture_extension = Board.forced_capture_extension - Board.forced_move_extension  # currently 10 - 5
         elif self.was_shuffle():
-            print("shuffle")
             capture_extension = Board.endgame_capture_extension  # currently 10
         elif self.mid_capture():
-            print("midcapture")
             capture_extension = Board.multiple_capture_extension  # currently 7
 
         # Set up alpha-beta parameters
@@ -244,7 +241,7 @@ class Board:
         # Main alpha-beta loop
         while move >= 0:
             self.set_child(move)
-            print('move: %s %s %s' % (move, depth, new_depth))
+            # print('move: %s %s %s' % (move, depth, new_depth))
             # if first move , check if it is already hashed
             if not self.child.mid_capture():  # Not midCapture
                 self.child.alpha_beta(new_depth, -pvs_beta, -alpha, sequence_number)
@@ -306,7 +303,8 @@ class Board:
         if hash_value:
             Board.movedict[hash_value] = (
                 self.myPieces, self.opponentPieces, self.best_move, eval_type, self.forced, self.evaluation, depth)
-        print("evaluation final: %s  BestMove: %s  depth: %s" % (self.evaluation, self.best_move, depth))
+
+        # print("evaluation final: %s  BestMove: %s  depth: %s" % (self.evaluation, self.best_move, depth))
     def __repr__(self):
         ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (self.myPieces, self.opponentPieces)
         board_pieces = utils.PiecesOnBoard(self.myPieces, self.opponentPieces)

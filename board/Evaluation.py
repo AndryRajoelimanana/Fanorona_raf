@@ -170,7 +170,7 @@ class Evaluation:
                   rshift(((opponent_pieces & Evaluation.right_control) - 1), 57) - \
                   rshift(((my_pieces & Evaluation.right_control) - 1), 57)
 
-        print("CONTROL : %s" % control)
+        # print("CONTROL : %s" % control)
         # Compute opponent active Pieces. Count active Pieces.
         oppSafeMoves = open_position & ~my_attacks
         opp_active = Evaluation.activity(opponent_pieces, oppSafeMoves)
@@ -240,7 +240,7 @@ class Evaluation:
 
         elif (((Evaluation.sm_left_fort & attackingPieces) == 0)
               and ((Evaluation.sm_left_guard & defendingPieces) != 0)):
-            print('tato sm_left')
+            # print('tato sm_left')
             fortress = Evaluation.sm_left_fort & defendingPieces
             fortress &= fortress - 1
             if fortress != 0:
@@ -253,7 +253,7 @@ class Evaluation:
         # large and small right fortresses
         if (((Evaluation.lg_right_fort & attackingPieces) == 0) and (
                 (Evaluation.lg_right_guard & defendingPieces) != 0)):
-            print('tato lg_right')
+            # print('tato lg_right')
             fortress = Evaluation.lg_right_fort & defendingPieces
             fortress &= fortress - 1
             if fortress != 0:
@@ -269,7 +269,7 @@ class Evaluation:
 
         elif (((Evaluation.sm_right_fort & attackingPieces) == 0)
               and ((Evaluation.sm_right_guard & defendingPieces) != 0)):
-            print('tato sm_right')
+            # print('tato sm_right')
             fortress = Evaluation.sm_right_fort & defendingPieces
             fortress &= fortress - 1
             if fortress != 0:

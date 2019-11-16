@@ -40,10 +40,13 @@ class Search:
         if not (mg.hasMoreElements()):
             return
 
-        new_board_move = Boardmove(self.board, mg.nextSet())
+        nextmove = mg.nextSet()
+        new_board_move = Boardmove(self.board, nextmove)
         self.set_board_move(new_board_move)
         if not (mg.hasMoreElements()):
             print("Forced move")
+            self.board.forced = True
+            self.board.arbmove = nextmove
             self.done()
             return
 
@@ -113,16 +116,16 @@ class Search:
             while True:
                 if sequence_number != Board.sequence_number:
                     self.abort()
-                    print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
+                    # print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
                     return
                 self.board.alpha_beta(depth * Board.ply, alpha, beta, sequence_number)
                 Search.currentEval = self.board.evaluation
-                print("New Search: %s, %s, %s" % (self.board.myPieces, self.board.opponentPieces, depth))
+                # print("New Search: %s, %s, %s" % (self.board.myPieces, self.board.opponentPieces, depth))
                 aspirations += 1
-                print("Search eval: %s %s %s"%(Search.currentEval, alpha, beta))
+                # print("Search eval: %s %s %s"%(Search.currentEval, alpha, beta))
                 if (current_milli_time() - start_time) > Search.time_max:
                     self.done()
-                    print("Time breakdown")
+                    # print("Time breakdown")
                     break
                 # print("Search eval: %s %s %s" % (Search.currentEval, alpha, beta))
                 if Search.currentEval >= beta:
@@ -130,7 +133,6 @@ class Search:
                 elif Search.currentEval <= alpha:
                     alpha = -Board.maxsize
                 else:
-                    print("Search break")
                     break
 
             if Search.winning(previous_eval) and (not Search.between(0, previous_eval, Search.currentEval)):

@@ -23,9 +23,9 @@ def bit_to_pieces(board):
     for i in range(49):
         bits_at_i = (1 << i)
         if board.myPieces & bits_at_i:
-            new_board[i + 1] = 'one'
-        elif board.opponentPieces & bits_at_i:
             new_board[i + 1] = 'two'
+        elif board.opponentPieces & bits_at_i:
+            new_board[i + 1] = 'one'
     return new_board
 
 
@@ -146,10 +146,11 @@ def board_to_bit(board):
     my_pieces = 0
     opp_pieces = 0
     for i in range(50):
-        if board[i] == 'two':
-            opp_pieces = opp_pieces + (1 << i)
-        elif board[i] == 'one':
-            my_pieces = my_pieces + (1 << i)
+        if i != 0:
+            if board[i] == 'one':
+                opp_pieces = opp_pieces + (1 << i - 1)
+            elif board[i] == 'two':
+                my_pieces = my_pieces + (1 << i - 1)
     return my_pieces, opp_pieces
 
 
@@ -169,3 +170,28 @@ def get_hash(Board, board, hash_value, alpha, beta, depth):
                 board.evaluation = stored_eval
                 return True
     return False
+
+
+def get_movelog(my_pieces, opp_pieces, move):
+    mvlist = []
+    initial_mv = findPiece(my_pieces & move)[0]
+    mvlist.append(initial_mv)
+    mvdict = dict()
+    mvdict[str(initial_mv)] = [0]
+    for mv in move_log:
+        if mv > 0:
+            openb = findPiece(~(my_pieces | opp_pieces | (1 << (mvlist[-1])-1)) & mv)[0]
+            print(openb)
+            mvlist.append(openb)
+            mvdict[str(openb)] = findPiece(opp_pieces & mv)
+    return mvdict, mvlist
+
+
+def findPiece(vv):
+    nn = to64(vv)
+    m = nn.rfind('1')
+    nnn = []
+    while m > 0:
+        nnn.append(64 - m)
+        m = nn.rfind('1', 0, m)
+    return nnn
