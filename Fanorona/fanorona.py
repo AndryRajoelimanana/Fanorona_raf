@@ -25,7 +25,7 @@ def pass_game():
     was_capture = in_board['was_capture']
     depth = int(in_board['depth'])
     my_pieces, opp_pieces = utils.board_to_bit(board)
-    my_board = SetBoard(my_pieces, opp_pieces, was_capture)
+    my_board = SetBoard(my_pieces, opp_pieces, was_capture=was_capture)
     print(my_board.myPieces, my_board.opponentPieces)
     move_log = []
     movedict = dict()
@@ -48,7 +48,6 @@ def pass_game():
             move_log.append(selected)
             movedict[str(selected)] = utils.findPiece(new_search.board.opponentPieces & move)
 
-    print(move_log, movedict)
     return jsonify({'move_log': move_log, 'movedict': movedict})
 
 

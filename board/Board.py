@@ -174,11 +174,6 @@ class Board:
 
     #    @property
     def alpha_beta(self, depth, alpha, beta, sequence_number):
-        # print("Run alpha alpha_beta(self, %s, %s, %s, %s)" % (depth, alpha, beta, sequence_number))
-        # utils.pbrd(self.myPieces, self.opponentPieces)
-        # print(" ")
-        # print(" ")
-        # print(" alphabeta :  %s   %s  %s  %s  %s" % (self.myPieces, self.opponentPieces, depth, alpha, beta))
         Board.nodeCount += 1
         self.hasPrincipalVariation = False
         hash_value = self.gethash()
@@ -186,18 +181,16 @@ class Board:
             eval_bool = Evaluation.evaluate(self, alpha, beta, depth)
             if (depth <= 0) and eval_bool:
                 Board.leafCount += 1
-                # print("Time for leaf evaluation")
                 return
             if utils.get_hash(Board, self, hash_value, alpha, beta, depth):
                 if self.best_move >= 0 and (self.evaluation >= alpha) and (self.evaluation <= beta):
                     self.set_child(self.best_move)
                     self.child.hasPrincipalVariation = False
                     self.set_principal_variation()
-                # print("in database")
                 return
 
         if sequence_number != Board.sequence_number:
-            print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
+            #print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
             return
 
         move_generator_is_set = False
@@ -211,7 +204,6 @@ class Board:
             move_generator_is_set = True
             move = self.moveGenerator.nextSet()
             self.forced = not (self.moveGenerator.hasMoreElements())
-        # print("Movegen= %s  %s"%(move, self.best_move))
         first_move = move
         # Compute extensions
         new_depth = depth - Board.ply
@@ -241,7 +233,6 @@ class Board:
         # Main alpha-beta loop
         while move >= 0:
             self.set_child(move)
-            # print('move: %s %s %s' % (move, depth, new_depth))
             # if first move , check if it is already hashed
             if not self.child.mid_capture():  # Not midCapture
                 self.child.alpha_beta(new_depth, -pvs_beta, -alpha, sequence_number)
@@ -289,12 +280,9 @@ class Board:
                 move = self.moveGenerator.nextSet()
             if Board.pvs and (alpha < Board.decrementable) and (-alpha > -Board.decrementable):
                 pvs_beta = alpha + 1
-            # print("evaluation = %s \nbestmove = %s" % (self.evaluation, self.best_move))
-            # print("current evaluation = %s \ncurrent bestmove = %s" % (move_eval, move))
-            # utils.pmv(move)
 
         if sequence_number != Board.sequence_number:
-            print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
+            # print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
             return
         if self.evaluation > Board.decrementable:
             self.evaluation -= Board.ply_decrement
@@ -304,7 +292,6 @@ class Board:
             Board.movedict[hash_value] = (
                 self.myPieces, self.opponentPieces, self.best_move, eval_type, self.forced, self.evaluation, depth)
 
-        # print("evaluation final: %s  BestMove: %s  depth: %s" % (self.evaluation, self.best_move, depth))
     def __repr__(self):
         ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (self.myPieces, self.opponentPieces)
         board_pieces = utils.PiecesOnBoard(self.myPieces, self.opponentPieces)
@@ -339,13 +326,6 @@ class SetBoard(Board):
 
 
 if __name__ == '__main__':
-    # hh = Board(white_goes_first=False)
-    # b1 = Boardmove(hh, 17609382707200)
-    # b1 = Boardmove(hh, 17196662800)
-    # b2 = Boardmove(b1, 0)
-    #    b1 = Boardmove(b2, 17600780175361)
-    #    b2 = Boardmove(b1, 0)
-    #    utils.pbrd(b2.myPieces, b2.opponentPieces)
     board = ["none", "one", "none", "none", "none", "one", "none", "none", "one", "none", "none", "one", "one", "none",
              "one", "one", "one", "none", "none", "none", "one", "none", "two", "none", "none", "one", "none", "two",
              "none", "two", "none", "two", "two", "two", "none", "two", "two", "two", "two", "two", "none", "two",
@@ -353,9 +333,5 @@ if __name__ == '__main__':
     my_pieces, opp_pieces = utils.board_to_bit(board)
     print(my_pieces, opp_pieces)
     hh = SetBoard(4611686018596683196, 9223927819925454848)
-    # 4611686018596683196 -9222816253784096768 0 -2147483647 -640
     hh.alpha_beta(0, -2147483647, -640, 0)
     print(hh.best_move, hh.evaluation)
-#    from engine.Search import Search
-#    ff = Search(hh, ply=3)
-#    ff.search()

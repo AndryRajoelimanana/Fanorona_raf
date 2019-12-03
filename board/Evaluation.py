@@ -170,7 +170,6 @@ class Evaluation:
                   rshift(((opponent_pieces & Evaluation.right_control) - 1), 57) - \
                   rshift(((my_pieces & Evaluation.right_control) - 1), 57)
 
-        # print("CONTROL : %s" % control)
         # Compute opponent active Pieces. Count active Pieces.
         oppSafeMoves = open_position & ~my_attacks
         opp_active = Evaluation.activity(opponent_pieces, oppSafeMoves)
@@ -181,7 +180,6 @@ class Evaluation:
             my_piece_count += myActivity
             opp_piece_count += oppActivity
             if my_piece_count >= opp_piece_count:
-                # print(myPieces, opponent_pieces, myActivity, myPieceCount, oppActivity, oppPieceCount)
                 b.evaluation = control + (my_piece_count - opp_piece_count) * Evaluation.ratios[opp_piece_count]
             else:
                 b.evaluation = control - (opp_piece_count - my_piece_count) * Evaluation.ratios[my_piece_count]
@@ -240,7 +238,6 @@ class Evaluation:
 
         elif (((Evaluation.sm_left_fort & attackingPieces) == 0)
               and ((Evaluation.sm_left_guard & defendingPieces) != 0)):
-            # print('tato sm_left')
             fortress = Evaluation.sm_left_fort & defendingPieces
             fortress &= fortress - 1
             if fortress != 0:
@@ -253,7 +250,6 @@ class Evaluation:
         # large and small right fortresses
         if (((Evaluation.lg_right_fort & attackingPieces) == 0) and (
                 (Evaluation.lg_right_guard & defendingPieces) != 0)):
-            # print('tato lg_right')
             fortress = Evaluation.lg_right_fort & defendingPieces
             fortress &= fortress - 1
             if fortress != 0:
@@ -269,7 +265,6 @@ class Evaluation:
 
         elif (((Evaluation.sm_right_fort & attackingPieces) == 0)
               and ((Evaluation.sm_right_guard & defendingPieces) != 0)):
-            # print('tato sm_right')
             fortress = Evaluation.sm_right_fort & defendingPieces
             fortress &= fortress - 1
             if fortress != 0:

@@ -116,18 +116,13 @@ class Search:
             while True:
                 if sequence_number != Board.sequence_number:
                     self.abort()
-                    # print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
                     return
                 self.board.alpha_beta(depth * Board.ply, alpha, beta, sequence_number)
                 Search.currentEval = self.board.evaluation
-                # print("New Search: %s, %s, %s" % (self.board.myPieces, self.board.opponentPieces, depth))
                 aspirations += 1
-                # print("Search eval: %s %s %s"%(Search.currentEval, alpha, beta))
                 if (current_milli_time() - start_time) > Search.time_max:
                     self.done()
-                    # print("Time breakdown")
                     break
-                # print("Search eval: %s %s %s" % (Search.currentEval, alpha, beta))
                 if Search.currentEval >= beta:
                     beta = Board.maxsize
                 elif Search.currentEval <= alpha:
@@ -159,17 +154,11 @@ class Search:
 
 
 if __name__ == '__main__':
-    #hh = Board(white_goes_first=False)
-#    b1 = Boardmove(hh, 17609382707200)
-#    b2 = Boardmove(b1, 0)
-    from Utils import utils
     from board.Board import SetBoard, Boardmove
     board = ["none", "one", "none", "none", "none", "one", "none", "none", "one", "none", "none", "one", "one", "none",
              "one", "one", "one", "none", "none", "none", "one", "none", "two", "none", "none", "one", "none", "two",
              "none", "two", "none", "two", "two", "two", "none", "two", "two", "two", "two", "two", "none", "two",
              "two", "two", "none", "two", "two", "two", "two", "two"]
-    #my_pieces, opp_pieces = utils.board_to_bit(boardin)
-    #print(my_pieces, opp_pieces)
     hh = SetBoard(560172527255552, 13835058055468269052)
     ff = Search(hh, ply=3)
     movelog=[]
@@ -179,7 +168,6 @@ if __name__ == '__main__':
             move = ff.board.best_move
             bb = Boardmove(ff.board, move)
             movelog.append(move)
-
     print(movelog)
     print(ff.board.best_move)
     print(ff.move)

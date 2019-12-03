@@ -181,7 +181,6 @@ def get_movelog(my_pieces, opp_pieces, move):
     for mv in move_log:
         if mv > 0:
             openb = findPiece(~(my_pieces | opp_pieces | (1 << (mvlist[-1])-1)) & mv)[0]
-            print(openb)
             mvlist.append(openb)
             mvdict[str(openb)] = findPiece(opp_pieces & mv)
     return mvdict, mvlist
