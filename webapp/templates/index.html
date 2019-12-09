@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+    <title>Fanorona RAF</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></link>
+    
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="root1"></div>
+
+    <div id="ddd" class="intersection"></div>
+    <div id="gggf">
+      <svg height="210" width="500">
+        <polygon points="200,10 250,190 160,210" style="fill:none;stroke:purple;stroke-width:1" />
+      </svg> 
+    </div>  
+    <!-- <script type="text/javascript" src="{{ url_for('static',filename='js/boardc.js')}}"></script> -->
+    <script type="text/babel" src="{{ url_for('static',filename='js/app_board.jsx')}}"></script>  
+    <script type="text/babel" src="{{ url_for('static',filename='js/board_draw.jsx')}}"></script> 
+    <script src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+
+  </body>
+</html>

@@ -1,0 +1,129 @@
+#alerts {
+    height: 40px;
+    line-height: 40px;
+}
+
+#pass-btn {
+}
+
+#board {
+    position: relative;
+}
+
+.intersection {
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.intersection:before {
+    border-top: 2px #000 solid;
+    width: 40px;
+    display: block;
+    content: "";
+    top: 18px;
+    position: absolute;
+    z-index: -1;
+}
+
+.intersection:after {
+    border-left: 2px #000 solid;
+    height: 40px;
+    display: block;
+    content: "";
+    left: 18px;
+    top: 0px;
+    position: absolute;
+    z-index: -1;
+}
+
+.intersection.black, .intersection.white {
+    border: 1px solid #000;
+}
+
+.intersection.black {
+    background-color: #444;
+}
+
+.intersection.white {
+    background-color: #eee;
+}
+
+body {
+font: 14px "Century Gothic", Futura, sans-serif;
+margin: 20px;
+}
+
+ol, ul {
+padding-left: 30px;
+}
+
+.board-row:after {
+clear: both;
+content: "";
+display: table;
+}
+
+.status {
+margin-bottom: 10px;
+}
+
+.square {
+background: #fff;
+border: 1px solid #999;
+float: left;
+font-size: 24px;
+font-weight: bold;
+line-height: 34px;
+height: 64px;
+margin-right: -1px;
+margin-top: -1px;
+padding: 1%;
+text-align: center;
+width: 64px;
+}
+
+.square:focus {
+outline: none;
+}
+
+
+.diamond {
+background: #fff;
+border: 1px solid #999;
+font-size: 24px;
+font-weight: bold;
+line-height: 34px;
+height: 64px;
+margin-right: -1px;
+margin-top: -1px;
+padding: 2%;
+text-align: center;
+width: 64px;
+}
+
+.diamond:focus {
+outline: none;
+}
+
+
+.polygon{
+fill: none;
+stroke: purple;
+stroke-width:1'
+}
+
+.kbd-navigation .square:focus {
+background: #ddd;
+}
+
+.game {
+display: flex;
+flex-direction: row;
+}
+
+.game-info {
+margin-left: 20px;
+}
