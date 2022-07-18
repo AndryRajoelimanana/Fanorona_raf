@@ -18,8 +18,8 @@ def timeit(method):
 
 
 class Bits:
-    is_white = 1 << 62
-    captured = 1 << 63
+    is_white = 4611686018427387904
+    captured = 9223372036854775808
     initial_bot = 173538815
     initial_top = 562399469895680
     top_row = 561850441793536
@@ -56,21 +56,31 @@ class Bits:
         return bitboard & -bitboard
 
 
-# from utils import rshift
+def tobin(my):
+    return "{0:064b}".format(my)
 
 
-# def vvv(x):
-#     x -= rshift(x, 1) & 0x5555555555555555
-#     x = (x & 0x3333333333333333) + (rshift(x, 2) & 0x3333333333333333)
-#     res = x + rshift(x, 32)
-#     return rshift(((res & 0x0f0f0f0f) + (rshift(res, 4) & 0x0f0f0f0f)) *
-#                   0x01010101, 24)
 
-"""
-public static final int count(long set) {
-		set -= (set >>> 1) & ONES;
-		set = (set & TWOS) + ((set >>> 2) & TWOS);
-		int result = (int) set + (int) (set >>> 32);
-		return (((result & FOURS) + ((result >>> 4) & FOURS)) * 0x01010101) >>> 24;
-	}
-"""
+def get_board(my, opp):
+    my = "{0:064b}".format(my)[-50:]
+    opp = "{0:064b}".format(opp)[-50:]
+    hh = []
+
+    for i, j in zip(my, opp):
+        if i == '1':
+            if j == '1':
+                raise
+            hh.append('1')
+        elif i == '0' and j == '1':
+            hh.append('2')
+        else:
+            hh.append('.')
+    print()
+    for i in range(5):
+        print(' ', '  '.join(hh[(i * 10)+1:((i + 1) * 10)]))
+    # return hh
+
+
+if __name__ == '__main__':
+    my, op = 4611686018596683196, 9223927819925454848
+    get_board(my, op)

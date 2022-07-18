@@ -3,6 +3,30 @@ import re
 import time
 
 
+list_moves = [10, 1, 11, 9]
+active_squares = 92632243238996
+# terms for broken-fortress evaluation
+attack_weight = 600  # value of a successful attack
+trapped_piece_weight = 100  # value of a trapped piece
+conversion_weight = 35  # bonus for converting to simpler pos
+max_positional_eval = 50  # expected max of next two terms
+forward_weight = 10  # value of a piece in the attacking zone
+space_weight = 1  # penalty for allowing defense liebensraum
+
+# terms for eval of relatively even positions
+piece_weight = 300  # multiplier for material ratio
+piece_value = 100  # add this number to ratio of activeposn
+attack_bonus = 50  # one side attacking but cant break fort
+
+# extra depths to search if a capture is available on this or the next ply
+capture_depth = -30
+threat_depth = -15
+
+left_control = 171865964544
+right_control = 10741622784
+center_control = 42966491136
+
+
 def timeit(method):
     def timed(*args, **kw):
         ts = time.time()
@@ -43,6 +67,88 @@ def PiecesOnBoard(pieces, pieces2, p1='1', p2='2', p0='.'):
     return stones
 
 
+class Pieces(int):
+    def __rshift__(self, other):
+        if self < 0:
+            return Pieces(int.__rshift__(self % (2**64), other))
+        else:
+            return Pieces(int.__rshift__(self, other))
+
+    def __and__(self, other):
+        return Pieces(int.__and__(self, other))
+
+    def __or__(self, other):
+        return Pieces(int.__or__(self, other))
+
+    def __lshift__(self, other):
+        return Pieces(int.__lshift__(self, other))
+
+    def __add__(self, other):
+        return Pieces(int.__add__(self, other))
+
+    @property
+    def count(self):
+        return self.on_board.count('1')
+
+    @property
+    def str(self):
+        return "{0:064b}".format(self % (2 ** 64))
+
+    @property
+    def on_board(self):
+        return self.str[14:]
+
+    def list(self):
+        return [list(self.on_board[i*10+1:(i+1)*10]) for i in range(5)]
+
+    def show_board(self):
+        llist = self.list()
+        print()
+        for i in range(5):
+            print("   ", "  ".join(llist[i]))
+
+    def control(self, side='left'):
+        if side == 'left':
+            return ((self & left_control) - 1) >> 57
+        elif side == 'right':
+            return ((self & right_control) - 1) >> 57
+        elif side == 'center':
+            return ((self & center_control) - 1) >> 57
+        else:
+            raise f'Pieces control side value {side} not valid'
+
+    @staticmethod
+    def next_to(s):
+        """
+        Compute positions that are adjacent to a particular pieces
+        """
+        n = (s >> Bits.shift_vertical) | (s << Bits.shift_vertical)
+        s |= (n & ~Bits.diagonal)
+        return n | (s >> Bits.shift_horizontal) | (s << Bits.shift_horizontal)
+
+    def activity(self, safe_moves):
+        """
+        Compute Pieces that can perform a safe move into an active square
+        """
+        act = (active_squares & self.next_to(safe_moves)) | self.next_to(
+            active_squares & safe_moves)
+        return (act | (active_squares & self.next_to(act & self))) & self
+
+    def attack(self, open_board):
+        unsafe = 0
+        for i in [10, 1]:
+            moves = get_moves(self, open_board, i)
+            unsafe |= eaten_pieces(moves, i)
+        for i in [11, 9]:
+            moves = get_moves(self & Bits.diagonal, open_board, i)
+            unsafe |= eaten_pieces(moves, i)
+        return unsafe
+
+
+
+
+
+
 # @timeit
 # def PiecesOnBoard1(pieces, pieces2):
 #     """Returns pieces array"""
@@ -64,7 +170,7 @@ def ShowBoard(pieces, pieces2):
     board_pieces = PiecesOnBoard(pieces, pieces2)
     ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (pieces, pieces2)
     for i in range(5):
-        ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'
+        ff = f'{ff}  ' + '  '.join(board_pieces[i][:]) + '\n'
     return ff
 
 
