@@ -48,81 +48,6 @@ class Evaluation:
     center_control = 42966491136
     ratios = [2147483647] + [int(300 / (i + 1)) for i in range(64)]
 
-    def attack(self, attackers, open_board):
-        unsafe = 0
-        for i in list_moves:
-            if i in [11, 9]:
-                attackers &= Bits.diagonal
-            unsafe |= unsafe_pieces(attackers, open_board, i)
-        return unsafe
-
-    def unsafe_pieces(self, attackers, open_board, move_type):
-        moves = get_moves(attackers, open_board, move_type)
-        return eaten_pieces(moves, move_type)
-
-
-
-    @staticmethod
-    def attack_old(attackers, open_board):
-        """
-        Compute attacks by a player
-
-        :param attackers: attacking piece
-        :param open_board: open board (not my pieces, nor opponent pieces)
-        :return: all positions that can be eaten by the attackers
-
-        """
-
-        shift_type = Bits.shift_vertical
-        moves = get_moves(attackers, open_board, shift_type)
-        unsafe_pieces = eaten_pieces(moves, shift_type)
-
-        shift_type = Bits.shift_horizontal
-        moves = get_moves(attackers, open_board, shift_type)
-        unsafe_pieces |= eaten_pieces(moves, shift_type)
-
-        attackers &= Bits.diagonal
-
-        shift_type = Bits.shift_slant
-        moves = get_moves(attackers, open_board, shift_type)
-        unsafe_pieces |= eaten_pieces(moves, shift_type)
-
-        shift_type = Bits.shift_backslant
-        moves = get_moves(attackers, open_board, shift_type)
-        unsafe_pieces |= eaten_pieces(moves, shift_type)
-
-        return unsafe_pieces
-
-    @staticmethod
-    def next_to(s):
-        """
-        Compute positions that are adjacent to a particular pieces
-        :param s:
-        :return:
-        """
-        n = (rshift(s, Bits.shift_vertical)) | (s << Bits.shift_vertical)
-        s |= (n & ~Bits.diagonal)
-        return n | (rshift(s, Bits.shift_horizontal)) | (
-                s << Bits.shift_horizontal)
-
-    @staticmethod
-    def activity(pieces, safe_moves):
-        """
-        Compute Pieces that can perform a safe move into an active square
-
-        :param pieces:
-            my pieces
-        :param safe_moves:
-            open position and not opponent attack
-        :return:
-            Pieces that can perform a safe move into an active square
-        """
-        act = (Evaluation.active_squares & Evaluation.next_to(
-            safe_moves)) | Evaluation.next_to(
-            Evaluation.active_squares & safe_moves)
-        return (act | (Evaluation.active_squares & Evaluation.next_to(
-            act & pieces))) & pieces
-
     def score_capture(self):
         # TODO
         pass
@@ -135,14 +60,14 @@ class Evaluation:
         """
         my_pieces = b.my_p
         opponent_pieces = b.opp_p
-        my_piece_count = my_pieces.
-        opp_piece_count = Bits.count(opponent_pieces)
+        my_piece_count = my_pieces.count
+        opp_piece_count = opponent_pieces.count
 
         if (my_piece_count <= 2) and (opp_piece_count <= 2):
             return True
 
-        open_position = open_on_board(b)
-        my_attacks = Evaluation.attack(my_pieces, open_position)
+        open_position = b.open
+        my_attacks = my_pieces.attack(open_position)
         # will next move is a capture return evaluate = True
         if (my_attacks & opponent_pieces) != 0:
             opp_piece_count -= 1
@@ -162,11 +87,11 @@ class Evaluation:
             return True
 
         # Run the following if my piece is not capturing
-        opp_attacks = Evaluation.attack(opponent_pieces, open_position)
+        opp_attacks = opponent_pieces.attack(open_position)
         my_safe_moves = open_position & ~opp_attacks
 
         # my_active = my active piece that can move safely
-        my_active = Evaluation.activity(my_pieces, my_safe_moves)
+        my_active = my_pieces.activity(my_safe_moves)
 
         # attacked: my attacked piece
         attacked = my_pieces & opp_attacks
@@ -188,16 +113,14 @@ class Evaluation:
             if depth > Evaluation.threat_depth:
                 return False
 
+
         # Who control the square if no piece in the control square it return 127 else 0
-        control = rshift(((opponent_pieces & Evaluation.left_control) - 1),
-                         57) - \
-                  rshift(((my_pieces & Evaluation.left_control) - 1), 57) + \
-                  rshift(((opponent_pieces & Evaluation.center_control) - 1),
-                         57) - \
-                  rshift(((my_pieces & Evaluation.center_control) - 1), 57) + \
-                  rshift(((opponent_pieces & Evaluation.right_control) - 1),
-                         57) - \
-                  rshift(((my_pieces & Evaluation.right_control) - 1), 57)
+        control = opponent_pieces.control() - my_pieces.control() + \
+                  opponent_pieces.control('center') - my_pieces.control(
+            'center') + opponent_pieces.control('right') - my_pieces.control(
+            'right')
+
+
 
         # Compute opponent active Pieces. Count active Pieces.
         oppSafeMoves = open_position & ~my_attacks

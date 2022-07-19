@@ -12,6 +12,7 @@ from Utils.Bits import Bits
 from engine.MoveGenerator import MoveGenerator
 from board.Evaluation import Evaluation
 from typing import TypeVar
+
 BoardT = TypeVar('BoardT', bound='Board')
 
 
@@ -28,8 +29,25 @@ class Board:
     maxsize = (1 << 31) - 1
     movedict = {}
 
-    def __init__(self, black_at_top=True, white_goes_first=True,
-                 prev: BoardT = None, move=None):
+    # board ply
+    ply = 10
+    ply_decrement = 1
+    forced_move_extension = 5
+    forced_capture_extension = 10
+    endgame_capture_extension = 5
+    forced_endgame_capture = 10
+    multiple_capture_extension = 7
+    early_pass_extension = 10
+    won_position = 10000
+    decrementable = 5000
+
+    # Evaluation Type
+    eval_upper_bound = 0
+    eval_lower_bound = 1
+    eval_exact = 2
+
+    def __init__(self, black_at_top: bool = True, white_goes_first: bool = True,
+                 prev: BoardT = None, move: int = None):
         # Evaluation parameter
         self.evaluation = 0
         self.best_move = -1
@@ -49,7 +67,8 @@ class Board:
             self.previousPosition = prev
             capture = prev & move
             if capture:
-                self.opponentPieces = (prev.opponentPieces ^ capture) | Bits.captured
+                self.opponentPieces = (
+                                                  prev.opponentPieces ^ capture) | Bits.captured
                 move ^= capture
                 self.alreadyVisited = prev.alreadyVisited | move
                 self.my_pieces = (prev.myPieces ^ move) | Bits.captured
@@ -85,11 +104,11 @@ class Board:
         self.initial_position(im_on_top, white_goes_first)
 
     @property
-    def my_p(self):
+    def my_p(self) -> Pieces:
         return self.myPieces & Bits.on_board
 
     @property
-    def opp_p(self):
+    def opp_p(self) -> Pieces:
         return self.opponentPieces & Bits.on_board
 
     @property
@@ -168,7 +187,8 @@ class Board:
         else:
             captures = self.opponentPieces & move
             if captures:
-                self.child.opponentPieces = (self.opponentPieces ^ captures) | Bits.captured
+                self.child.opponentPieces = (
+                                                        self.opponentPieces ^ captures) | Bits.captured
                 move ^= captures
                 self.child.alreadyVisited = self.alreadyVisited | move
                 self.child.myPieces = (self.myPieces ^ move) | Bits.captured
@@ -256,7 +276,7 @@ class Board:
                                           sequence_number)
                     move_eval = -self.child.evaluation
                 if (move_eval > self.evaluation) and (move == 0) and (
-                not self.forced):
+                        not self.forced):
                     self.child.alpha_beta(new_depth +
                                           Board1.early_pass_extension, -beta,
                                           -alpha, sequence_number)
@@ -305,28 +325,22 @@ class Board:
         if sequence_number != Board1.sequence_number:
             # print("Sequence number %s != %s" % (sequence_number, Board.sequence_number))
             return
-        if self.evaluation > Board1.decrementable:
-            self.evaluation -= Board1.ply_decrement
-        elif self.evaluation < -Board1.decrementable:
-            self.evaluation += Board1.ply_decrement
+        if self.evaluation > Board.decrementable:
+            self.evaluation -= Board.ply_decrement
+        elif self.evaluation < -Board.decrementable:
+            self.evaluation += Board.ply_decrement
         if hash_value:
-            Board1.movedict[hash_value] = (
+            Board.movedict[hash_value] = (
                 self.myPieces, self.opponentPieces, self.best_move, eval_type,
                 self.forced, self.evaluation, depth)
 
     def __repr__(self):
         ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (
-        self.myPieces, self.opponentPieces)
+            self.myPieces, self.opponentPieces)
         board_pieces = utils.PiecesOnBoard(self.myPieces, self.opponentPieces)
         for i in range(5):
             ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'
         return ff
-
-
-
-
-
-
 
 
 class Board1:
@@ -474,12 +488,14 @@ class Board1:
         else:
             captures = self.opponentPieces & move
             if captures != 0:
-                self.child.opponentPieces = (self.opponentPieces ^ captures) | Bits.captured
+                self.child.opponentPieces = (
+                                                        self.opponentPieces ^ captures) | Bits.captured
                 move ^= captures
                 self.child.alreadyVisited = self.alreadyVisited | move
                 self.child.myPieces = (self.myPieces ^ move) | Bits.captured
             else:
-                self.child.opponentPieces, self.child.myPieces = (self.myPieces ^ move), (
+                self.child.opponentPieces, self.child.myPieces = (
+                                                                             self.myPieces ^ move), (
                                                                          self.opponentPieces & ~Bits.captured)
                 self.child.alreadyVisited = 0
         self.child.best_move = -1
@@ -583,7 +599,7 @@ class Board1:
                                           sequence_number)
                     move_eval = -self.child.evaluation
                 if (move_eval > self.evaluation) and (move == 0) and (
-                not self.forced):
+                        not self.forced):
                     self.child.alpha_beta(new_depth +
                                           Board1.early_pass_extension, -beta,
                                           -alpha, sequence_number)
@@ -643,7 +659,7 @@ class Board1:
 
     def __repr__(self):
         ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (
-        self.myPieces, self.opponentPieces)
+            self.myPieces, self.opponentPieces)
         board_pieces = utils.PiecesOnBoard(self.myPieces, self.opponentPieces)
         for i in range(5):
             ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'
@@ -656,12 +672,14 @@ class Boardmove(Board1):
         self.previousPosition = previousPosition
         captures = previousPosition.opponentPieces & move
         if captures != 0:
-            self.opponentPieces = (previousPosition.opponentPieces ^ captures) | Bits.captured
+            self.opponentPieces = (
+                                              previousPosition.opponentPieces ^ captures) | Bits.captured
             move ^= captures
             self.alreadyVisited = previousPosition.alreadyVisited | move
             self.myPieces = (previousPosition.myPieces ^ move) | Bits.captured
         else:
-            self.opponentPieces, self.myPieces = (previousPosition.myPieces ^ move), (
+            self.opponentPieces, self.myPieces = (
+                                                             previousPosition.myPieces ^ move), (
                                                          previousPosition.opponentPieces & ~Bits.captured)
             self.alreadyVisited = 0
 

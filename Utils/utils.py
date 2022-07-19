@@ -189,6 +189,11 @@ def get_moves(attackers, open_board, movetype):
     return (attackers & rshift(open_board, movetype)) | (open_board & rshift(attackers, movetype))
 
 
+def unsafe_pieces(attackers, open_board, move_type):
+    moves = get_moves(attackers, open_board, move_type)
+    return eaten_pieces(moves, move_type)
+
+
 def NegBit(val):
     """Returns Negative Bit"""
     if (val | (1 << 63)) > (1 << 63):
