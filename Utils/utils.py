@@ -1,6 +1,9 @@
 from Utils.Bits import Bits
 import re
+from typing import TypeVar
 import time
+
+PiecesT = TypeVar('PiecesT', bound='Pieces')
 
 
 list_moves = [10, 1, 11, 9]
@@ -25,6 +28,35 @@ threat_depth = -15
 left_control = 171865964544
 right_control = 10741622784
 center_control = 42966491136
+
+# stuff for finding fortresses
+sm_left_fort = 281887696617728
+sm_left_guard = 206225735680
+sm_left_attack = 105553149821024
+lg_left_fort = 493097109127616
+lg_left_guard = 51657097216
+lg_left_attack = 26388287455256
+sm_right_fort = 1102736002049
+sm_right_guard = 2151680000
+sm_right_attack = 13194143727628
+lg_right_fort = 7712703265799
+lg_right_guard = 25799188480
+lg_right_attack = 52776591687728
+
+dict_fortress = {'sm_left': 281887696617728,
+                 'lg_left': 493097109127616,
+                 'sm_right': 1102736002049,
+                 'lg_right': 7712703265799}
+
+dict_guard = {'sm_left': 206225735680,
+              'lg_left': 51657097216,
+              'sm_right': 2151680000,
+              'lg_right': 25799188480}
+
+dict_attack = {'sm_left': 105553149821024,
+               'lg_left': 26388287455256,
+               'sm_right': 13194143727628,
+               'lg_right': 52776591687728}
 
 
 def timeit(method):
@@ -67,36 +99,126 @@ def PiecesOnBoard(pieces, pieces2, p1='1', p2='2', p0='.'):
     return stones
 
 
-class Pieces(int):
-    def __rshift__(self, other):
-        if self < 0:
-            return Pieces(int.__rshift__(self % (2**64), other))
-        else:
-            return Pieces(int.__rshift__(self, other))
+class Pieces:
+    def __init__(self, value: int, ):
+        self.val = value
 
-    def __and__(self, other):
-        return Pieces(int.__and__(self, other))
+    def __rshift__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            if self.val < 0:
+                return Pieces((self.val % (2 ** 64)) >> other)
+            else:
+                return Pieces(self.val >> other)
+        elif isinstance(other, Pieces):
+            if self.val < 0:
+                return Pieces((self.val % (2 ** 64)) >> other)
+            else:
+                return Pieces(self.val >> other)
 
-    def __or__(self, other):
-        return Pieces(int.__or__(self, other))
+    def __invert__(self) -> PiecesT:
+        return Pieces(~self.val)
 
-    def __lshift__(self, other):
-        return Pieces(int.__lshift__(self, other))
+    def __and__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val & other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val & other.val)
 
-    def __add__(self, other):
-        return Pieces(int.__add__(self, other))
+    def __or__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val | other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val | other.val)
+
+    def __xor__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val ^ other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val ^ other.val)
+
+    def __rxor__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val ^ other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val ^ other.val)
+
+    def __lshift__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val << other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val << other.val)
+
+    def __add__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val + other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val + other.val)
+
+    def __sub__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val - other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val - other.val)
+
+    def __rrshift__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            if self.val < 0:
+                return Pieces((self.val % (2 ** 64)) >> other)
+            else:
+                return Pieces(self.val >> other)
+        elif isinstance(other, Pieces):
+            if self.val < 0:
+                return Pieces((self.val % (2 ** 64)) >> other)
+            else:
+                return Pieces(self.val >> other)
+
+    def __rand__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val & other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val & other.val)
+
+    def __ror__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val | other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val | other.val)
+
+    def __rlshift__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val << other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val << other.val)
+
+    def __radd__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val + other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val + other.val)
+
+    def __rsub__(self, other) -> PiecesT:
+        if isinstance(other, int):
+            return Pieces(self.val - other)
+        elif isinstance(other, Pieces):
+            return Pieces(self.val - other.val)
+
+    def __repr__(self):
+        bb = to64(self.val)[14:]
+        ff = ''
+        for i in range(5):
+            ff += '  '.join(bb[i*10+1:(i+1)*10].replace('0', '.')) + '\n'
+        return ff
 
     @property
     def count(self):
-        return self.on_board.count('1')
+        return self.on_board().str.count('1')
 
     @property
     def str(self):
-        return "{0:064b}".format(self % (2 ** 64))
+        return "{0:064b}".format(self.val % (2 ** 64))
 
-    @property
-    def on_board(self):
-        return self.str[14:]
+    def on_board(self) -> PiecesT:
+        return Pieces(self.val & Bits.on_board)
 
     def list(self):
         return [list(self.on_board[i*10+1:(i+1)*10]) for i in range(5)]
@@ -117,25 +239,27 @@ class Pieces(int):
         else:
             raise f'Pieces control side value {side} not valid'
 
-    @staticmethod
-    def next_to(s):
+    @property
+    def next_to(self) -> PiecesT:
         """
         Compute positions that are adjacent to a particular pieces
         """
-        n = (s >> Bits.shift_vertical) | (s << Bits.shift_vertical)
+        s = self
+        n = p_move(s, Bits.shift_vertical)
         s |= (n & ~Bits.diagonal)
-        return n | (s >> Bits.shift_horizontal) | (s << Bits.shift_horizontal)
+        return n | p_move(s, Bits.shift_horizontal)
 
-    def activity(self, safe_moves):
+    def activity(self, safe_moves: PiecesT) -> PiecesT:
         """
         Compute Pieces that can perform a safe move into an active square
         """
-        act = (active_squares & self.next_to(safe_moves)) | self.next_to(
-            active_squares & safe_moves)
-        return (act | (active_squares & self.next_to(act & self))) & self
+        nn = (safe_moves.next_to() & active_squares)
+        act = nn | safe_moves.not_active_square
+        return Pieces((act | (active_squares & self.next_to(act & self))) &
+                      self)
 
-    def attack(self, open_board):
-        unsafe = 0
+    def attack(self, open_board: PiecesT) -> PiecesT:
+        unsafe = Pieces(0)
         for i in [10, 1]:
             moves = get_moves(self, open_board, i)
             unsafe |= eaten_pieces(moves, i)
@@ -144,7 +268,22 @@ class Pieces(int):
             unsafe |= eaten_pieces(moves, i)
         return unsafe
 
+    def fortress(self, type_='lg_left') -> PiecesT:
+        return self & dict_fortress[type_]
 
+    def guard(self, type_='lg_left') -> PiecesT:
+        return self & dict_guard[type_]
+
+    def to_attack(self, type_='lg_left') -> PiecesT:
+        return self & dict_attack[type_]
+
+    @property
+    def not_active_square(self) -> PiecesT:
+        return self & ~active_squares
+
+    @property
+    def active_square(self) -> PiecesT:
+        return self & active_squares
 
 
 
@@ -183,6 +322,8 @@ def open_on_board(board):
 def eaten_pieces(moves, movetype):
     return rshift(moves, movetype) | (moves << (2 * movetype))
 
+def p_move(move, type_=10):
+    return (move << type_) | (move >> type_)
 
 def get_moves(attackers, open_board, movetype):
     """Returns moves for a specific move type"""

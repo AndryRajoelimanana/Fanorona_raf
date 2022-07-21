@@ -53,13 +53,14 @@ class Evaluation:
         pass
 
     @staticmethod
-    def evaluate(b: Board, alpha=-2147483648, beta=2147483648, depth=-2147483648):
+    def evaluate(b: Board, alpha=-2147483648, beta=2147483648,
+                 depth=-2147483648):
         """
         Evaluation function itself
         Returns true with eval in b.evaluation, or false if depth is too high
         """
-        my_pieces = b.my_p
-        opponent_pieces = b.opp_p
+        my_pieces = b.myPieces
+        opponent_pieces = b.opponentPieces
         my_piece_count = my_pieces.count
         opp_piece_count = opponent_pieces.count
 
@@ -113,20 +114,18 @@ class Evaluation:
             if depth > Evaluation.threat_depth:
                 return False
 
-
-        # Who control the square if no piece in the control square it return 127 else 0
+        # Who control the square if no piece in the control square it return
+        # 127 else 0
         control = opponent_pieces.control() - my_pieces.control() + \
                   opponent_pieces.control('center') - my_pieces.control(
             'center') + opponent_pieces.control('right') - my_pieces.control(
             'right')
 
-
-
         # Compute opponent active Pieces. Count active Pieces.
         oppSafeMoves = open_position & ~my_attacks
-        opp_active = Evaluation.activity(opponent_pieces, oppSafeMoves)
-        myActivity = Bits.count(my_active)
-        oppActivity = Bits.count(opp_active)
+        opp_active = opponent_pieces.activity(oppSafeMoves)
+        myActivity = my_active.count
+        oppActivity = opp_active.count
 
         if myActivity == oppActivity:
             my_piece_count += myActivity
@@ -158,15 +157,16 @@ class Evaluation:
             stuckDefenders = my_pieces & ~my_active
             defendingTrapped = my_piece_count - myActivity
             safeForDefense = my_safe_moves
-            control = -control
+            control = - control
             alpha, beta = -beta, -alpha
 
         if (((defendingActivity + defendingTrapped) == 1)
-                and (attackingActivity >= 2) and (attackingTrapped == 0)
-                and ((safeForDefense & Evaluation.next_to(attackingPieces &
-                                                          ~Evaluation.active_squares)) == 0)
-                and ((safeForDefense & Evaluation.next_to(attackingPieces) &
-                      Evaluation.next_to(defendingPieces)) == 0)):
+                and (attackingActivity >= 2)
+                and (attackingTrapped == 0)
+                and not (
+                        safeForDefense & attackingPieces.not_active_square.next_to)
+                and not ((safeForDefense & attackingPieces.next_to) &
+                         defendingPieces.next_to)):
             b.evaluation = int(attackingActivity * b.won_position - (
                     b.won_position / 2) + control)
             if not attacking:
@@ -176,9 +176,8 @@ class Evaluation:
         attackZone = 0
         fortress = 0
         fortressStrength = 0
-        if (((Evaluation.lg_left_fort & attackingPieces) == 0)
-                and ((Evaluation.lg_left_guard & defendingPieces) != 0)):
-            fortress = Evaluation.lg_left_fort & defendingPieces
+        if not attackingPieces.fortress() and defendingPieces.guard():
+            fortress = defendingPieces.fortress('lg_left')
             # if piece in fortress greater than 1
             fortress &= fortress - 1
             if fortress != 0:
@@ -187,26 +186,26 @@ class Evaluation:
                     fortressStrength = 1
                 else:
                     fortressStrength = 2
-                attackZone = Evaluation.lg_left_attack
-                if (Evaluation.lg_left_guard & stuckDefenders) != 0:
+                attackZone = lg_left_attack
+                if stuckDefenders.guard('lg_left'):
                     defendingActivity += 1
                     defendingTrapped -= 1
 
-        elif (((Evaluation.sm_left_fort & attackingPieces) == 0)
-              and ((Evaluation.sm_left_guard & defendingPieces) != 0)):
-            fortress = Evaluation.sm_left_fort & defendingPieces
+        elif not attackingPieces.fortress('sm_left') and \
+                defendingPieces.guard('sm_left'):
+            fortress = defendingPieces.fortress('sm_left')
             fortress &= fortress - 1
             if fortress != 0:
                 fortressStrength = 1
-                attackZone = Evaluation.sm_left_attack
-                if (Evaluation.sm_left_guard & stuckDefenders) != 0:
+                attackZone = sm_left_attack
+                if stuckDefenders.guard('sm_left'):
                     defendingActivity += 1
                     defendingTrapped -= 1
 
         # large and small right fortresses
-        if (((Evaluation.lg_right_fort & attackingPieces) == 0) and (
-                (Evaluation.lg_right_guard & defendingPieces) != 0)):
-            fortress = Evaluation.lg_right_fort & defendingPieces
+        if not attackingPieces.fortress('lg_right') and \
+                defendingPieces.guard('lg_right'):
+            fortress = defendingPieces.fortress('lg_right')
             fortress &= fortress - 1
             if fortress != 0:
                 fortress &= fortress - 1
@@ -214,24 +213,24 @@ class Evaluation:
                     fortressStrength += 1
                 else:
                     fortressStrength += 2
-                attackZone |= Evaluation.lg_right_attack
-                if (Evaluation.lg_right_guard & stuckDefenders) != 0:
+                attackZone |= lg_right_attack
+                if stuckDefenders.guard('lg_right'):
                     defendingActivity += 1
                     defendingTrapped -= 1
 
-        elif (((Evaluation.sm_right_fort & attackingPieces) == 0)
-              and ((Evaluation.sm_right_guard & defendingPieces) != 0)):
-            fortress = Evaluation.sm_right_fort & defendingPieces
+        elif not attackingPieces.fortress('sm_right') and \
+                defendingPieces.guard('sm_right'):
+            fortress = defendingPieces.fortress('sm_right')
             fortress &= fortress - 1
             if fortress != 0:
                 fortressStrength += 1
-                attackZone |= Evaluation.sm_right_attack
-                if (Evaluation.sm_right_guard & stuckDefenders) != 0:
+                attackZone |= sm_right_attack
+                if stuckDefenders.guard('sm_right'):
                     defendingActivity += 1
                     defendingTrapped -= 1
 
         if fortressStrength == 0:
-            fortressStrength = rshift(control, 31)
+            fortressStrength = control >> 31
 
         if attackingActivity - defendingActivity - fortressStrength > 0:
             evalb = Evaluation.attack_weight * (
@@ -252,7 +251,7 @@ class Evaluation:
                 evalb - Evaluation.max_positional_eval < beta):
             space = defendingPieces
             while True:
-                newSpace = space | (Evaluation.next_to(space) & safeForDefense)
+                newSpace = space | space.next_ & safeForDefense)
                 if space == newSpace:
                     break
                 space = newSpace
@@ -267,12 +266,10 @@ class Evaluation:
             b.evaluation = -evalb
         return True
 
-
     # @staticmethod
     # def find_control(piece, side='left'):
     #     if side == 'left':
     #         return rshift(((piece & Evaluation.left_control) - 1), 57)
-
 
 
 from Utils.board_utils import *
