@@ -4,7 +4,6 @@ import sys
 sys.path.append(os.path.realpath('..'))
 
 from Utils.utils1 import *
-from board.Evaluation1 import Evaluation
 
 from board.Board1 import Board
 from board.Board1 import MoveGenerator
@@ -100,8 +99,6 @@ class Search:
 
     def search(self):
 
-        # print('\n Searching ..............\n')
-
         depth = 1
         log_disabled = False
         previous_eval = 0
@@ -111,28 +108,26 @@ class Search:
         sequence_number = Board.sequence_number
         while ((self.ply == 0) or (depth <= self.ply)) and (
                 not (self.get_stop())):
-            Board.nodeCount = 0
-            Board.leafCount = 0
+            Board.nodeCount = Board.leafCount = 0
             if Board.collect_extra_statistics:
-                Board.boardConsCount = 0
-                Board.moveGenConsCount = 0
-                Board.endgameEvalCount = 0
-                Board.pvChangeCount = 0
+                Board.boardConsCount = Board.moveGenConsCount = 0
+                Board.endgameEvalCount = Board.pvChangeCount = 0
 
             if Hash.collect_statistic_hash:
                 Hash.hits = Hash.misses = Hash.shallow = Hash.badBound = 0
 
             start_time = current_milli_time()
 
-            alpha = Search.currentEval - int(Search.ASPIRATION_WINDOW / 2)
-            beta = Search.currentEval + int(Search.ASPIRATION_WINDOW / 2)
+            aspirations_window = int(Search.ASPIRATION_WINDOW / 2)
+            alpha = Search.currentEval - aspirations_window
+            beta = Search.currentEval + aspirations_window
             aspirations = 0
             while True:
                 if sequence_number != Board.sequence_number:
                     self.abort()
                     return
-                self.board.alpha_beta(depth * Board.ply, alpha, beta,
-                                      sequence_number)
+                dpth = depth * Board.ply
+                self.board.alpha_beta(dpth, alpha, beta, sequence_number)
                 Search.currentEval = self.board.evaluation
                 if debug:
                     print(f'New Search: {self.board.myPieces.repr} '
@@ -140,24 +135,20 @@ class Search:
                 aspirations += 1
                 if debug:
                     print(f'Search eval: {Search.currentEval} {alpha} {beta}')
-                # if (current_milli_time() - start_time) > Search.time_max:
-                #    self.done()
-                #    break
                 if Search.currentEval >= beta:
                     beta = Board.maxsize
                 elif Search.currentEval <= alpha:
                     alpha = -Board.maxsize
                 else:
                     break
-                # return
-                time.sleep(0.1)
+                # time.sleep(0.1)
 
             if Search.winning(previous_eval) and (
                     not Search.between(0, previous_eval, Search.currentEval)):
                 Search.currentEval = previous_eval
             elif self.board.PVar is not None:
-                self.set_board_move(
-                    Board.from_move(self.board, self.board.best_move))
+                new_board = Board.from_move(self.board, self.board.best_move)
+                self.set_board_move(new_board)
             if (not log_disabled) or (Search.currentEval != previous_eval):
                 previous_eval = Search.currentEval
                 exec_time = current_milli_time() - start_time + 1
@@ -188,6 +179,7 @@ class Search:
 
     @staticmethod
     def between(a, b, c):
+        """ ((a <= b <= c)  OR (c <= b <= a)) AND a != c"""
         return (a >= b) != (c >= b)
 
 
@@ -226,10 +218,10 @@ class Game:
 def run_search(game, ply=3):
     while True:
         board = game.get_board()
-        print(board)
+        # print(board)
         if board.human_to_move():
             break
-        print(' Searching ........')
+        print('\n Searching ........')
         new_search = Search(game, board, ply=ply)
         # new_search.search()
 

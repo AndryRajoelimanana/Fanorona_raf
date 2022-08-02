@@ -352,6 +352,15 @@ class Hash:
                 board.evaluation = evaluation
                 if Hash.collect_statistic_hash:
                     Hash.hits += 1
+                if board.best_move >= 0 and (board.evaluation >= alpha) and (
+                        board.evaluation <= beta):
+                    board.set_child(board.best_move)
+                    board.child.hasPVar = False
+                    board.set_principal_variation()
+                    if debug:
+                        print("Tato hash")
+                if debug:
+                    print("in database")
                 return True
             elif Hash.collect_statistic_hash:
                 Hash.badBound += 1
@@ -360,7 +369,8 @@ class Hash:
         return False
 
     @staticmethod
-    def set_hash(board, hash_value, evalType, depth):
+    def set_hash(board, evalType, depth):
+        hash_value = hash(board)
         depth += depth_adjustment
         if depth < 0:
             return

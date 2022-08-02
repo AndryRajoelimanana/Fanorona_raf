@@ -288,10 +288,10 @@ class Board:
             self.evaluation -= Board.ply_decrement
         elif self.evaluation < -Board.decrementable:
             self.evaluation += Board.ply_decrement
-        if hash_value:
-            Board.movedict[hash_value] = (
-                self.myPieces., self.opponentPieces, self.best_move,
-                eval_type, self.forced, self.evaluation, depth)
+        # if hash_value:
+        #     Board.movedict[hash_value] = (
+        #         self.myPieces., self.opponentPieces, self.best_move,
+        #         eval_type, self.forced, self.evaluation, depth)
 
     def __repr__(self):
         ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (self.myPieces, self.opponentPieces)

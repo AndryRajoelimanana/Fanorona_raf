@@ -90,6 +90,7 @@ class Board:
         self.attackingTrapped = None
         self.stuckDefenders = None
         self.defendingTrapped = None
+        self.move_generator_is_set = False
 
     @classmethod
     def initial_board(cls, black_at_top: bool = True,
@@ -277,7 +278,7 @@ class Board:
     def from_to(self, first_move=True):
         if self.was_pass():
             if first_move:
-                print('pass', end= ' ')
+                print('pass', end=' ')
             return True
         prev = self.prev
         captures = prev.oppPieces & self.open
@@ -323,6 +324,7 @@ class Board:
             self.moveGenerator = MoveGenerator(self)
         else:
             self.moveGenerator.reset(self)
+        self.move_generator_is_set = True
 
     def set_principal_variation(self):
         """Setting Principal Variation search"""
@@ -364,75 +366,7 @@ class Board:
                 self.child.visited = 0
         self.child.best_move = Piece(-1)
 
-    def alpha_beta(self, depth, alpha, beta, sequence_number):
-        if debug:
-            print('  \n  ')
-        Board.nodeCount += 1
-        self.hasPVar = False
-        if debug:
-            print(f'alphabeta: {self.myPieces.repr} '
-                  f'{self.oppPieces.repr} {depth}'
-                  f' {alpha} {beta}')
-
-        hash_value = hash(self)
-        if not self.mid_capture():
-            # is already evaluated?
-            eval_bool = Evaluation.evaluate(self, alpha, beta, depth)
-            if eval_bool is not None:
-                self.evaluation = eval_bool
-            if (depth <= 0) and (eval_bool is not None):
-                Board.leafCount += 1
-                if debug:
-                    print("Time for leaf evaluation")
-                return
-
-            if self.hash.get_hash(self, hash_value, alpha, beta, depth):
-                if self.best_move >= 0 and (self.evaluation >= alpha) and (
-                        self.evaluation <= beta):
-                    self.set_child(self.best_move)
-                    self.child.hasPVar = False
-                    self.set_principal_variation()
-                    if debug:
-                        print("Tato hash")
-                if debug:
-                    print("in database")
-                return
-
-        # finish when sequence_number != Board sequence_number
-        if sequence_number != Board.sequence_number:
-            if debug:
-                print("Sequence number : ")
-            return
-
-        # Find first move to be search
-        move_generator_is_set = False
-        if self.best_move >= 0:
-            move = self.best_move
-            if debug:
-                print(f"First bestmove selected:{move.val}")
-        elif Board.iid and (depth >= Board.iid_limit):
-            self.alpha_beta(depth - Board.iid_ply, alpha, beta,
-                            sequence_number)
-            # if debug:
-            #     print(f'current sol Best move:{self.best_move.val} eval:'
-            #           f' {self.evaluation}')
-            move = self.best_move
-            if debug:
-                print(f"First iid move selected:{move.val}")
-        else:
-            self.set_move_generator()
-            move_generator_is_set = True
-            move = self.moveGenerator.nextSet()
-            # print(f'move: {move}')
-            self.forced = not (self.moveGenerator.hasMoreElements())
-            if debug:
-                print(f"First newGenerator move selected:{move.val} "
-                      f"{'true' if self.forced else 'false'}")
-        # print(f'move: {move}')
-        first_move = move
-        if debug:
-            print(f'Movegen= {move.val}  {self.best_move.val}')
-        # Compute extensions
+    def compute_capture_extension(self, depth):
         new_depth = depth - Board.ply
         capture_extension = 0
 
@@ -460,6 +394,67 @@ class Board:
             if debug:
                 print('midcapture')
             capture_extension = Board.multiple_capture_extension  # currently 7
+        return capture_extension, new_depth
+
+    def find_firstmove(self, depth, alpha, beta, sequence_number):
+        if self.best_move >= 0:
+            move = self.best_move
+            if debug:
+                print(f"First bestmove selected:{move.val}")
+        elif Board.iid and (depth >= Board.iid_limit):
+            self.alpha_beta(depth - Board.iid_ply, alpha, beta,
+                            sequence_number)
+            move = self.best_move
+            if debug:
+                print(f"First iid move selected:{move.val}")
+        else:
+            self.set_move_generator()
+            self.move_generator_is_set = True
+            move = self.moveGenerator.nextSet()
+            self.forced = not (self.moveGenerator.hasMoreElements())
+            if debug:
+                print(f"First newGenerator move selected:{move.val} "
+                      f"{'true' if self.forced else 'false'}")
+        return move
+
+    def was_evaluated(self, alpha, beta, depth):
+        eval_bool = Evaluation.evaluate(self, alpha, beta, depth)
+        if eval_bool is not None:
+            self.evaluation = eval_bool
+            if depth <= 0:
+                Board.leafCount += 1
+                if debug:
+                    print("Time for leaf evaluation")
+                return True
+        hash_value = hash(self)
+        if self.hash.get_hash(self, hash_value, alpha, beta, depth):
+            return True
+        return False
+
+    def alpha_beta(self, depth, alpha, beta, sequence_number):
+        if debug:
+            print('  \n  ')
+        Board.nodeCount += 1
+        self.hasPVar = False
+        if debug:
+            print(f'alphabeta: {self.myPieces.repr} {self.oppPieces.repr} {depth} '
+                  f' {alpha} {beta}')
+
+        if not self.mid_capture() and self.was_evaluated(alpha, beta, depth):
+            return
+
+        # finish when sequence_number != Board sequence_number
+        if sequence_number != Board.sequence_number:
+            return
+
+        # Find first move to be search
+        self.move_generator_is_set = False
+
+        move = self.find_firstmove(depth, alpha, beta, sequence_number)
+        first_move = move
+
+        # Compute extensions
+        capture_extension, new_depth = self.compute_capture_extension(depth)
 
         # Set up alpha-beta parameters
         self.evaluation = -Board.maxsize
@@ -483,14 +478,13 @@ class Board:
                     move_eval = -self.child.evaluation
                 if (move_eval > self.evaluation) and (move == 0) and (
                         not self.forced):
-                    self.child.alpha_beta(new_depth +
-                                          Board.early_pass_extension, -beta,
-                                          -alpha, sequence_number)
+                    dpth = new_depth + Board.early_pass_extension
+                    self.child.alpha_beta(dpth, -beta, -alpha, sequence_number)
                     move_eval = -self.child.evaluation
             # do this IF we still have opponent piece after the move
             elif self.child.oppPieces != 0:
-                self.child.alpha_beta(new_depth + capture_extension, alpha,
-                                      beta, sequence_number)
+                dpth = new_depth + capture_extension
+                self.child.alpha_beta(dpth, alpha, beta, sequence_number)
                 move_eval = self.child.evaluation
 
             # opponent piece == 0 finish it
@@ -504,9 +498,7 @@ class Board:
                 if debug:
                     print("WON position")
                 break
-            # if debug:
-            #     print(f'current sol Best move:{self.best_move.val} eval:'
-            #           f' {self.evaluation}')
+
             # How good is our move and compare it to alpha and beta
             # (if eval > alpha => alpha = eval, if eval >=beta
             # => prune search)
@@ -523,14 +515,14 @@ class Board:
 
             if self.forced:
                 break
-            if not move_generator_is_set:
+            if not self.move_generator_is_set:
                 self.set_move_generator()
-                move_generator_is_set = True
+                self.move_generator_is_set = True
             move = self.moveGenerator.nextSet()
             if move == first_move:
                 move = self.moveGenerator.nextSet()
-            if Board.pvs and (alpha < Board.decrementable) and (-alpha >
-                                                                -Board.decrementable):
+            brd_decr = Board.decrementable
+            if Board.pvs and (alpha < brd_decr) and (-alpha > -brd_decr):
                 pvs_beta = alpha + 1
 
         if debug:
@@ -543,16 +535,9 @@ class Board:
             self.evaluation -= Board.ply_decrement
         elif self.evaluation < -Board.decrementable:
             self.evaluation += Board.ply_decrement
-        # if hash_value >= 0:
-        self.hash.set_hash(self, hash_value, eval_type, depth)
 
-        # depth += depth_adjustment
-        # Board.movedict[hash_value] = (
-        #     self.myPieces.value, self.oppPieces.value, self.best_move.val,
-        #     eval_type, self.forced, self.evaluation, depth)
-        # if debug:
-        #     print(f'current sol Best move:{self.best_move.val} eval:'
-        #           f' {self.evaluation}')
+        self.hash.set_hash(self, eval_type, depth)
+
         if debug:
             print(f'evaluation final: {self.evaluation}  BestMove: '
                   f'{self.best_move.val}  depth: {depth}')
@@ -573,14 +558,6 @@ class Board:
             ff += '  '.join(
                 bb2[i * 10 + 1:(i + 1) * 10].replace('0', '.')) + '\n'
         return ff
-
-    # def __repr__(self):
-    #     ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (
-    #         self.myPieces, self.oppPieces)
-    #     board_pieces = utils.PiecesOnBoard(self.myPieces, self.oppPieces)
-    #     for i in range(5):
-    #         ff = ff + '  ' + '  '.join(board_pieces[i][:]) + '\n'
-    #     return ff
 
 
 class MoveGenerator(object):
