@@ -49,7 +49,7 @@ class Bits:
 
     @staticmethod
     def count(pieces):
-        return bin(pieces & Bits.on_board).count('1')
+        return bin(pieces.val & Bits.on_board).count('1')
 
     @staticmethod
     def last_bit(bitboard):

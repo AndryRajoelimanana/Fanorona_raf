@@ -1,6 +1,7 @@
 from Utils.Bits import Bits
-from Utils.utils import *
-from board.Board1 import Board
+from Utils.utils1 import *
+# from board.Board1 import Board
+import Utils.configs
 
 
 class Evaluation:
@@ -48,95 +49,89 @@ class Evaluation:
     center_control = 42966491136
     ratios = [2147483647] + [int(300 / (i + 1)) for i in range(64)]
 
+    min_eval = - maxsize
+
     def score_capture(self):
         # TODO
         pass
 
     @staticmethod
-    def evaluate(b: Board, alpha=-2147483648, beta=2147483648,
+    def evaluate(b, alpha=-2147483648, beta=2147483648,
                  depth=-2147483648):
         """
         Evaluation function itself
         Returns true with eval in b.evaluation, or false if depth is too high
         """
         my_pieces = b.myPieces
-        opponent_pieces = b.opponentPieces
+        opp_pieces = b.oppPieces
         my_piece_count = my_pieces.count
-        opp_piece_count = opponent_pieces.count
-
+        opp_piece_count = opp_pieces.count
+        evalb = None
         if (my_piece_count <= 2) and (opp_piece_count <= 2):
             return True
 
-        open_position = b.open
-        my_attacks = my_pieces.attack(open_position)
+        # IF DEPTH is TOO HIGH return FALSE
+        # open_position = b.open
+        # my_attacks = my_pieces.attack(open_position)
         # will next move is a capture return evaluate = True
-        if (my_attacks & opponent_pieces) != 0:
+        if b.my_capture().val:
             opp_piece_count -= 1
             if opp_piece_count == 0:  # will capture win?
-                b.evaluation = my_piece_count * b.won_position - b.ply_decrement
-                return True
+                evaluation = evaluate_pieces(my_piece_count, opp_piece_count)
+                return evaluation
             if depth > Evaluation.capture_depth:  # make a deeper search
-                return False
-            if my_piece_count >= opp_piece_count:
-                b.evaluation = (my_piece_count - opp_piece_count) * (
-                        Evaluation.ratios[
-                            opp_piece_count] + Evaluation.piece_value)
-            else:
-                b.evaluation = -(opp_piece_count - my_piece_count) * (
-                        Evaluation.ratios[
-                            my_piece_count] + Evaluation.piece_value)
-            return True
+                return None
+            evaluation = evaluate_pieces(my_piece_count, opp_piece_count)
+            return evaluation
 
         # Run the following if my piece is not capturing
-        opp_attacks = opponent_pieces.attack(open_position)
-        my_safe_moves = open_position & ~opp_attacks
-
-        # my_active = my active piece that can move safely
-        my_active = my_pieces.activity(my_safe_moves)
-
+        my_active = b.my_activity()
         # attacked: my attacked piece
-        attacked = my_pieces & opp_attacks
+        attacked = b.opp_capture()
 
         # Check if:
-        #   - any of my piece can't move safely (ever move to capture or to trapped position)
+        #   - any of my piece can't move safely (ever move into capture or to
+        #   trapped position)
         #   - attacked pieces are already trap
         #   - too many capture to evade
         if (my_active == 0) or ((attacked & my_active) != attacked) or (
                 (attacked & (attacked - 1)) != 0):
             my_piece_count -= 1
             if my_piece_count == 0:
-                b.evaluation = -(
-                        opp_piece_count * b.won_position - 4 * b.ply_decrement)
-                return True
+                evaluation = evaluate_pieces(my_piece_count, opp_piece_count)
+                return evaluation
             if depth > Evaluation.capture_depth:  # make a deeper search
-                return False
+                return None
         elif attacked != 0:
             if depth > Evaluation.threat_depth:
-                return False
+                return None
 
         # Who control the square if no piece in the control square it return
         # 127 else 0
-        control = opponent_pieces.control() - my_pieces.control() + \
-                  opponent_pieces.control('center') - my_pieces.control(
-            'center') + opponent_pieces.control('right') - my_pieces.control(
-            'right')
+        control = b.control()
+        if debug:
+            print(f'CONTROL : {control}')
 
         # Compute opponent active Pieces. Count active Pieces.
-        oppSafeMoves = open_position & ~my_attacks
-        opp_active = opponent_pieces.activity(oppSafeMoves)
+        # oppSafeMoves = open_position & ~my_attacks
+        # opp_active = opp_pieces.activity(oppSafeMoves)
         myActivity = my_active.count
-        oppActivity = opp_active.count
+        oppActivity = b.opp_activity().count
 
         if myActivity == oppActivity:
             my_piece_count += myActivity
             opp_piece_count += oppActivity
-            if my_piece_count >= opp_piece_count:
-                b.evaluation = control + (my_piece_count - opp_piece_count) * \
-                               Evaluation.ratios[opp_piece_count]
-            else:
-                b.evaluation = control - (opp_piece_count - my_piece_count) * \
-                               Evaluation.ratios[my_piece_count]
-            return True
+            evaluation = evaluate_pieces(my_piece_count, opp_piece_count,
+                                           control=control)
+            if debug:
+                print(f'CONTROL : {evaluation} {my_piece_count} {opp_piece_count} {ratios[opp_piece_count]} {ratios[my_piece_count]}')
+            return evaluation
+
+        opponent_pieces = b.oppPieces
+        opp_active = b.opp_activity()
+        oppSafeMoves = b.opp_safemove()
+        my_safe_moves = b.my_safemove()
+
         if myActivity > oppActivity:
             attacking = True
             attackingPieces = my_pieces
@@ -157,31 +152,36 @@ class Evaluation:
             stuckDefenders = my_pieces & ~my_active
             defendingTrapped = my_piece_count - myActivity
             safeForDefense = my_safe_moves
-            control = - control
+            control = -control
             alpha, beta = -beta, -alpha
 
         if (((defendingActivity + defendingTrapped) == 1)
                 and (attackingActivity >= 2)
                 and (attackingTrapped == 0)
-                and not (
-                        safeForDefense & attackingPieces.not_active_square.next_to)
-                and not ((safeForDefense & attackingPieces.next_to) &
-                         defendingPieces.next_to)):
-            b.evaluation = int(attackingActivity * b.won_position - (
+                and not (safeForDefense & next_to(
+                    attackingPieces.not_active_square))
+                and not ((safeForDefense & next_to(attackingPieces)) &
+                         next_to(defendingPieces))):
+            evaluation = int(attackingActivity * b.won_position - (
                     b.won_position / 2) + control)
+            if debug:
+                print(f'CONTROL : {evaluation} {attackingActivity}')
             if not attacking:
-                b.evaluation = -b.evaluation
-            return True
+                evaluation = -evaluation
+            return evaluation
         # Find fortresses and estimate material cost to break them
         attackZone = 0
         fortress = 0
         fortressStrength = 0
+        defendingActivity = defendingActivity
+        defendingTrapped = defendingTrapped
+
         if not attackingPieces.fortress() and defendingPieces.guard():
             fortress = defendingPieces.fortress('lg_left')
             # if piece in fortress greater than 1
-            fortress &= fortress - 1
+            fortress = fortress & (fortress -1)
             if fortress != 0:
-                fortress &= fortress - 1
+                fortress = fortress & (fortress -1)
                 if fortress == 0:
                     fortressStrength = 1
                 else:
@@ -194,7 +194,7 @@ class Evaluation:
         elif not attackingPieces.fortress('sm_left') and \
                 defendingPieces.guard('sm_left'):
             fortress = defendingPieces.fortress('sm_left')
-            fortress &= fortress - 1
+            fortress = fortress & (fortress -1)
             if fortress != 0:
                 fortressStrength = 1
                 attackZone = sm_left_attack
@@ -206,9 +206,9 @@ class Evaluation:
         if not attackingPieces.fortress('lg_right') and \
                 defendingPieces.guard('lg_right'):
             fortress = defendingPieces.fortress('lg_right')
-            fortress &= fortress - 1
+            fortress = fortress & (fortress -1)
             if fortress != 0:
-                fortress &= fortress - 1
+                fortress = fortress & (fortress -1)
                 if fortress == 0:
                     fortressStrength += 1
                 else:
@@ -221,7 +221,7 @@ class Evaluation:
         elif not attackingPieces.fortress('sm_right') and \
                 defendingPieces.guard('sm_right'):
             fortress = defendingPieces.fortress('sm_right')
-            fortress &= fortress - 1
+            fortress = fortress & (fortress -1)
             if fortress != 0:
                 fortressStrength += 1
                 attackZone |= sm_right_attack
@@ -230,12 +230,14 @@ class Evaluation:
                     defendingTrapped -= 1
 
         if fortressStrength == 0:
-            fortressStrength = control >> 31
-
+            fortressStrength = 1 if control < 0 else 0
         if attackingActivity - defendingActivity - fortressStrength > 0:
             evalb = Evaluation.attack_weight * (
                     attackingActivity - defendingActivity - fortressStrength) + Evaluation.trapped_piece_weight * (
                             attackingTrapped - defendingTrapped) - Evaluation.conversion_weight * defendingActivity
+            if debug:
+                print(f'Eval : Fortress broken{evalb} {attackingActivity}'
+                  f' {defendingActivity} {fortressStrength}')
         else:
             a = 2 * attackingActivity + attackingTrapped
             d = 2 * defendingActivity + defendingTrapped
@@ -251,20 +253,20 @@ class Evaluation:
                 evalb - Evaluation.max_positional_eval < beta):
             space = defendingPieces
             while True:
-                newSpace = space | space.next_ & safeForDefense)
+                newSpace = space | (next_to(space) & safeForDefense)
                 if space == newSpace:
                     break
                 space = newSpace
 
-            evalb += Evaluation.forward_weight * Bits.count(
-                attackingPieces & attackZone) - Evaluation.space_weight * Bits.count(
-                space)
+            evalb += Evaluation.forward_weight * (
+                attackingPieces & attackZone).count - Evaluation.space_weight\
+                     * space.count
+            if debug:
+                print(f'Eval : slower low-order eval {space.val} {attackZone} '
+                      f'{evalb}')
 
-        if attacking:
-            b.evaluation = evalb
-        else:
-            b.evaluation = -evalb
-        return True
+        evaluation = evalb if attacking else -evalb
+        return evaluation
 
     # @staticmethod
     # def find_control(piece, side='left'):
@@ -275,35 +277,47 @@ class Evaluation:
 from Utils.board_utils import *
 
 if __name__ == '__main__':
-    my, op = 4611686018596683196 & Bits.on_board, 9223927819925454848 & Bits.on_board
-    print(tobin(my))
-    print(tobin(op))
-    open_pos = (my ^ op) ^ ((2 ** 64) - 1)
-    get_board(my, op)
-    # get_board(open_pos, 0)
-    v = Evaluation()
-    # get_board(v.attack(my, open_pos), 0)
-    shift_type = Bits.shift_vertical
-    moves = get_moves(op, open_pos, shift_type)
-    unsafe_pieces = eaten_pieces(moves, shift_type)
-    get_board(moves, 0)
+    # my = 4611686018596683192 & Bits.on_board
+    # opp = 9223927819925454848 & Bits.on_board
+    # my = 169295288
+    # opp = 555783070679040
+    my = sum([1 << i for i in [25, 35, 45]])
+    opp = sum([1 << i for i in [22, 31, 32]])
 
-    get_board(rshift(open_pos, Bits.shift_vertical) & op, 0)
-    attackers = op
-    open_board = ((my ^ op) ^ ((2 ** 64) - 1)) & Bits.on_board
-    movetype = Bits.shift_vertical
-    moves = (attackers & rshift(open_board, movetype)) | (open_board & rshift(
-        attackers, movetype))
-    get_board(0, open_board)
-    print(tobin(open_board))
-    m1 = attackers & rshift(open_board, movetype)
-    m2 = open_board & rshift(attackers, movetype)
-    # get_board(rshift(open_board, movetype), 0)
-    ff = ShowBoard(my, op)
-    print(ff)
-    get_board(my, op)
-    print(tobin(my), tobin(op))
-    get_board(m1, 0)
-    get_board(m2, 0)
-    # get_board(0, (rshift(open_board, movetype)))
-    # get_board((open_board & rshift(attackers, movetype)), 0)
+    my = Player(my)
+    opp = Player(opp)
+    b = Board(my, opp)
+    eval = Evaluation.evaluate(b)
+
+    print(eval)
+    # print(tobin(my))
+    # print(tobin(op))
+    # open_pos = (my ^ op) ^ ((2 ** 64) - 1)
+    # get_board(my, op)
+    # # get_board(open_pos, 0)
+    # v = Evaluation()
+    # # get_board(v.attack(my, open_pos), 0)
+    # shift_type = Bits.shift_vertical
+    # moves = get_moves(op, open_pos, shift_type)
+    # unsafe_pieces = eaten_pieces(moves, shift_type)
+    # get_board(moves, 0)
+    #
+    # get_board(rshift(open_pos, Bits.shift_vertical) & op, 0)
+    # attackers = op
+    # open_board = ((my ^ op) ^ ((2 ** 64) - 1)) & Bits.on_board
+    # movetype = Bits.shift_vertical
+    # moves = (attackers & rshift(open_board, movetype)) | (open_board & rshift(
+    #     attackers, movetype))
+    # get_board(0, open_board)
+    # print(tobin(open_board))
+    # m1 = attackers & rshift(open_board, movetype)
+    # m2 = open_board & rshift(attackers, movetype)
+    # # get_board(rshift(open_board, movetype), 0)
+    # ff = ShowBoard(my, op)
+    # print(ff)
+    # get_board(my, op)
+    # print(tobin(my), tobin(op))
+    # get_board(m1, 0)
+    # get_board(m2, 0)
+    # # get_board(0, (rshift(open_board, movetype)))
+    # # get_board((open_board & rshift(attackers, movetype)), 0)

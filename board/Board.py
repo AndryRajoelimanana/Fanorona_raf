@@ -158,14 +158,14 @@ class Board:
             self.principalVariation = self.child
             self.child = self.principalVariation.child
             if self.child is not None:
-                self.child.previousPosition = self
+                self.child.prev = self
         else:
             temp = self.child
             self.child = self.principalVariation
             self.principalVariation = temp
             self.child.child = self.principalVariation.child
             if self.child.child is not None:
-                self.child.child.previousPosition = self.child
+                self.child.child.prev = self.child
         self.principalVariation.child = None
         self.hasPrincipalVariation = True
 
@@ -185,7 +185,7 @@ class Board:
             if utils.get_hash(Board, self, hash_value, alpha, beta, depth):
                 if self.best_move >= 0 and (self.evaluation >= alpha) and (self.evaluation <= beta):
                     self.set_child(self.best_move)
-                    self.child.hasPrincipalVariation = False
+                    self.child.hasPVar = False
                     self.set_principal_variation()
                 return
 
@@ -245,7 +245,7 @@ class Board:
                     move_eval = -self.child.evaluation
 
             # do this IF we still have opponent piece after the move
-            elif (self.child.opponentPieces & Bits.on_board) != 0:
+            elif (self.child.oppPieces & Bits.on_board) != 0:
                 self.child.alpha_beta(new_depth + capture_extension, alpha, beta, sequence_number)
                 move_eval = self.child.evaluation
 
@@ -254,7 +254,7 @@ class Board:
                 self.evaluation = Bits.count(self.myPieces & Bits.on_board) * Board.won_position
                 eval_type = Board.eval_exact
                 self.best_move = move
-                self.child.hasPrincipalVariation = False
+                self.child.hasPVar = False
                 self.set_principal_variation()
                 break
 
@@ -290,7 +290,8 @@ class Board:
             self.evaluation += Board.ply_decrement
         if hash_value:
             Board.movedict[hash_value] = (
-                self.myPieces, self.opponentPieces, self.best_move, eval_type, self.forced, self.evaluation, depth)
+                self.myPieces., self.opponentPieces, self.best_move,
+                eval_type, self.forced, self.evaluation, depth)
 
     def __repr__(self):
         ff = '\nmyPieces : %s \noppPieces : %s \n \n' % (self.myPieces, self.opponentPieces)
@@ -304,15 +305,15 @@ class Boardmove(Board):
     def __init__(self, previousPosition, move):
         super().__init__()
         self.previousPosition = previousPosition
-        captures = previousPosition.opponentPieces & move
+        captures = previousPosition.oppPieces & move
         if captures != 0:
-            self.opponentPieces = (previousPosition.opponentPieces ^ captures) | Bits.captured
+            self.opponentPieces = (previousPosition.oppPieces ^ captures) | Bits.captured
             move ^= captures
-            self.alreadyVisited = previousPosition.alreadyVisited | move
+            self.alreadyVisited = previousPosition.visited | move
             self.myPieces = (previousPosition.myPieces ^ move) | Bits.captured
         else:
             self.opponentPieces, self.myPieces = (previousPosition.myPieces ^ move), (
-                    previousPosition.opponentPieces & ~Bits.captured)
+                    previousPosition.oppPieces & ~Bits.captured)
             self.alreadyVisited = 0
 
 
@@ -326,7 +327,8 @@ class SetBoard(Board):
 
 
 if __name__ == '__main__':
-    board = ["none", "one", "none", "none", "none", "one", "none", "none", "one", "none", "none", "one", "one", "none",
+    board = ["none", "none", "none", "none", "none", "one", "none", "none",
+             "one", "none", "none", "one", "one", "none",
              "one", "one", "one", "none", "none", "none", "one", "none", "two", "none", "none", "one", "none", "two",
              "none", "two", "none", "two", "two", "two", "none", "two", "two", "two", "two", "two", "none", "two",
              "two", "two", "none", "two", "two", "two", "two", "two"]

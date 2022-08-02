@@ -49,7 +49,7 @@ class MoveGenerator(object):
         #
         # get moving piece
         if board.mid_capture():
-            move = (myPieces & Bits.on_board) ^ (board.previousPosition.myPieces & Bits.on_board)
+            move = (myPieces & Bits.on_board) ^ (board.prev.myPieces & Bits.on_board)
             self.storedFrom = myPieces & move
             if (move & (move << Bits.shift_vertical) & Bits.on_board) != 0:
                 move = (move << Bits.shift_vertical) | rshift(move, Bits.shift_vertical)
@@ -59,11 +59,11 @@ class MoveGenerator(object):
                 move = (move << Bits.shift_slant) | rshift(move, Bits.shift_slant)
             else:
                 move = (move << Bits.shift_backslant) | rshift(move, Bits.shift_backslant)
-            self.storedTo = Bits.on_board & ~(move | myPieces | board.opponentPieces | board.alreadyVisited)
+            self.storedTo = Bits.on_board & ~(move | myPieces | board.oppPieces | board.visited)
             return
         else:
             self.storedFrom = myPieces
-            self.storedTo = Bits.on_board & ~(myPieces | board.opponentPieces)
+            self.storedTo = Bits.on_board & ~(myPieces | board.oppPieces)
             return
 
     def generate_next_set(self):
@@ -76,7 +76,7 @@ class MoveGenerator(object):
     def find_next_element(self):
         sfrom = self.storedFrom
         sto = self.storedTo
-        target = self.board.opponentPieces
+        target = self.board.oppPieces
         self.made_capture = False
 
         # vertical forward
@@ -231,14 +231,14 @@ class MoveGenerator(object):
             move_value = bit | (bit << self.shift)
             bit <<= 2 * self.shift
             # get eaten pieces for each move
-            while (bit & self.board.opponentPieces) != 0:
+            while (bit & self.board.oppPieces) != 0:
                 move_value |= bit
                 bit <<= self.shift
             return move_value
         elif self.capture_type == MoveGenerator.capture_backward:
             move_value = bit | (bit << self.shift)
             bit = rshift(bit, self.shift)
-            while (bit & self.board.opponentPieces) != 0:
+            while (bit & self.board.oppPieces) != 0:
                 move_value |= bit
                 bit = rshift(bit, self.shift)
             return move_value

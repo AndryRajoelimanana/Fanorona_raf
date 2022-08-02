@@ -112,7 +112,7 @@ class Evaluation:
     @staticmethod
     def evaluate(b, alpha=-2147483648, beta=2147483648, depth=-2147483648):
         my_pieces = b.myPieces & Bits.on_board
-        opponent_pieces = b.opponentPieces & Bits.on_board
+        opponent_pieces = b.oppPieces & Bits.on_board
         my_piece_count = Bits.count(my_pieces)
         opp_piece_count = Bits.count(opponent_pieces)
 

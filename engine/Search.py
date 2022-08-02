@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(os.path.realpath('..'))
 from board.Board import Boardmove
-from board.Board import Board
+from board.Board1 import Board
 from engine.MoveGenerator import MoveGenerator
 
 import time
@@ -31,7 +31,7 @@ class Search:
 
         if Board.must_pass(self.board):
             print('Forced pass')
-            new_board_move = Boardmove(self.board, 0)
+            new_board_move = Board.from_move(self.board, 0)
             self.set_board_move(new_board_move)
             self.done()
             return
@@ -51,7 +51,7 @@ class Search:
             return
 
         if Board.endgameDatabase is not None:
-            self.set_board_move(self.board.principalVariation)
+            self.set_board_move(self.board.PVar)
             self.done()
             return
 
@@ -88,7 +88,7 @@ class Search:
     def done(self):
         self.make_board_move()
         self.board.child = None
-        self.board.principalVariation = None
+        self.board.PVar = None
         self.board.moveGenerator = None
 
     def search(self):
@@ -132,7 +132,7 @@ class Search:
 
             if Search.winning(previous_eval) and (not Search.between(0, previous_eval, Search.currentEval)):
                 Search.currentEval = previous_eval
-            elif self.board.principalVariation is not None:
+            elif self.board.PVar is not None:
                 self.set_board_move(Boardmove(self.board, self.board.best_move))
             if (not log_disabled) or (Search.currentEval != previous_eval):
                 previous_eval = Search.currentEval
