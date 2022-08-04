@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 // import {PathLine} from 'react-svg-pathline'
 import './App.css';
 import * as utils from './utils.js';
@@ -49,7 +49,7 @@ class App extends React.Component {
         this.setState({is_moving: true});
         setTimeout(()=> {
         this.wait_computer();
-        }, 100);
+        }, 10000);
         this.setState({computer_move: false, is_moving: false});
       }
    // }
@@ -60,20 +60,28 @@ class App extends React.Component {
     let current_params = {'boardstate':boardstate, 'was_capture':was_capture, 'depth':depth};
     var selected_list = [];
     var states = [];
-    axios.post('http://127.0.0.1:5000/pass', current_params)
+    axios.post('/pass', current_params)
     .then(res => {
         let move_log = res.data["move_log"];
-        let movedict = res.data['movedict'];
+        // console.log(move_log);
+        // let movedict = move_log;
         let selected;
-        let prev_selected = move_log[0];
+        let prev_selected = move_log[0][0];
         for (var i=0; i<move_log.length; i++){
-          selected = move_log[i];
+          selected = move_log[i][0];
+          var eaten = move_log[i][1];
           boardstate = boardstate.map(function(item) { return item === 'none eaten' ? 'none' : item; });
-          var eaten = movedict[selected];
           for (var j=0; j<eaten.length; j++){
             boardstate[eaten[j]] = 'none eaten';
           }
+          // boardstate[selected] = 'two'
+          // 
+          // var eaten = movedict[selected];
+          // for (var j=0; j<eaten.length; j++){
+          //   boardstate[eaten[j]] = 'none eaten';
+          // }
           selected_list = selected_list.concat([selected]);
+          console.log(selected_list);
           boardstate[prev_selected] = 'none';
           prev_selected = selected;
           boardstate[prev_selected] = 'two';

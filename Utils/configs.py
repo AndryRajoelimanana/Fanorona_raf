@@ -39,6 +39,7 @@ lg_right_attack = 52776591687728
 depth_adjustment = 40
 
 debug = False
+logging = False
 # debug = True
 
 dict_fortress = {'sm_left': 281887696617728,

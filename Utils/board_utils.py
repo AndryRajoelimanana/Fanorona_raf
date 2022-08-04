@@ -38,15 +38,6 @@ class Bits:
     def at(row, col):
         return 1 << (10 * (4 - row)) + (8 - col)
 
-    # @staticmethod
-    # def count(pieces):
-    #     stones = 0
-    #     for i in range(5):
-    #         for j in range(9):
-    #             if (pieces & Bits.at(i, j)) != 0:
-    #                 stones += 1
-    #     return stones
-
     @staticmethod
     def count(pieces):
         return bin(pieces & Bits.on_board).count('1')

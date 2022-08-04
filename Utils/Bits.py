@@ -38,15 +38,6 @@ class Bits:
     def at(row, col):
         return 1 << (10 * (4 - row)) + (8 - col)
 
-    # @staticmethod
-    # def count(pieces):
-    #     stones = 0
-    #     for i in range(5):
-    #         for j in range(9):
-    #             if (pieces & Bits.at(i, j)) != 0:
-    #                 stones += 1
-    #     return stones
-
     @staticmethod
     def count(pieces):
         return bin(pieces.val & Bits.on_board).count('1')
@@ -66,11 +57,4 @@ class Bits:
 #     return rshift(((res & 0x0f0f0f0f) + (rshift(res, 4) & 0x0f0f0f0f)) *
 #                   0x01010101, 24)
 
-"""
-public static final int count(long set) {
-		set -= (set >>> 1) & ONES;
-		set = (set & TWOS) + ((set >>> 2) & TWOS);
-		int result = (int) set + (int) (set >>> 32);
-		return (((result & FOURS) + ((result >>> 4) & FOURS)) * 0x01010101) >>> 24;
-	}
-"""
+
