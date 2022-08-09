@@ -23,12 +23,11 @@ def index():
 def pass_game():
     in_board = request.get_json()
     board = in_board['boardstate']
-    print(board)
-    was_capture = in_board['was_capture']
     depth = int(in_board['depth'])
+    print(board, depth)
     my_pieces, opp_pieces = board_to_bit(board)
     my = Player(my_pieces)
-    opp = Player(opp_pieces | (int(was_capture) << 63) | (1 << 62))
+    opp = Player(opp_pieces | (1 << 62))
     board = Board(my, opp)
     # print(board.myPieces.repr, board.oppPieces.repr)
     game = Game()
@@ -54,6 +53,7 @@ def pass_game():
         cur = cur.next
         if cur.best_move <= 0:
             break
+    print('vita', moves)
     return jsonify({'move_log': moves})
     #
     #

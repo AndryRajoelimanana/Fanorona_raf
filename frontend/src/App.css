@@ -382,12 +382,17 @@ margin: 0 0 10% 0;
   border: none;
 }
 
+.animated {
+  transition-property: background-color;
+  transition-duration: 1s;
+}
+
 .player-none.eaten {
-  background-color: none;
+  background-color: green;
   /* box-shadow: 0 0 10px 5px #16A8C7;
   animation-name: myAnimation;
-  animation-duration: 50ms;
-  animation-fill-mode: forwards; */
+  animation-duration: 1000ms;
+  animation-fill-mode: forwards;*/
 }
 
 .selected {

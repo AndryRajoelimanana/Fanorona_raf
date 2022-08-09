@@ -15,7 +15,159 @@ export function create_board(my_pieces, opp_pieces){
    }
    return stones
   }
-  
+
+
+export function was_capture(prev, curr) {
+  const [my, opp] = count_pieces(curr)
+  const [my_prev, opp_prev] = count_pieces(prev)
+  if ((my < my_prev) || (opp < opp_prev)){
+    return true
+  }
+  return false
+}
+
+
+export function has_available(board){
+  let available_move=[];
+  for (var i = 0; i<50; i++){
+    const piece = board[i];
+    if (piece.includes('available')){
+      available_move.push(i);
+    }
+  }
+  return available_move;
+}
+
+
+export function visited(board){
+  let visits=[];
+  for (var i = 0; i<50; i++){
+    const piece = board[i];
+    if (piece.includes('visited')){
+      visits.push(i);
+    }
+  }
+  return visits;
+}
+
+
+export function get_first_move(board, move_string){
+  let game_type;
+  switch(move_string){
+    case 'd5-c5':
+      game_type = 'vakyloha';
+      break;
+    case 'c6-c5':
+      if (board[23] === 'none eaten'){
+        game_type = 'kobana';
+      } else if (board[26] === 'none eaten'){
+        game_type = 'fohy';
+      }
+      break;
+    case 'd4-c5':
+      game_type = 'havanana';
+      break;
+    case 'd6-c5':
+      game_type = 'havia';
+      break;
+  }
+  return game_type;
+}
+
+export function must_choose(board){
+  let choose=[];
+  for (var i = 0; i<50; i++){
+    const piece = board[i];
+    if (piece.includes('choose')){
+      choose.push(i);
+    }
+  }
+  return choose;
+}
+
+export function make_computer_move(board, moves){
+  let boardstate = board;
+  const selected = moves[0];
+  const eaten = moves[1];
+  boardstate = new_board(boardstate);
+  if (eaten.length === 0){
+    boardstate[selected] = 'none visited';
+    return boardstate;
+  }
+  for (var j=0; j<eaten.length; j++){
+    if (boardstate[eaten[j]] === 'one') {
+      boardstate[eaten[j]] = 'none eaten';
+    } else{
+      boardstate[eaten[j]] = 'none';
+    }
+  }
+  boardstate[selected] = 'two selected visited';
+  return boardstate;
+}
+
+
+export function undo_selected(board){
+  let boardout = board.slice();
+  for (var i = 0; i<50; i++){
+    const piece = boardout[i];
+    boardout[i] = piece.replace(' selected','');
+    boardout[i] = piece.replace(' available','');
+    // if (piece.includes('selected')){
+    //  board[i] = piece.replace(' selected','');
+    }
+  return board;
+}
+
+export function new_board(board){
+  let boardout = board.slice();
+  for (var i = 0; i<50; i++){
+    boardout[i] = boardout[i].replace(' selected','');
+    boardout[i] = boardout[i].replace(' available','');
+    boardout[i] = boardout[i].replace(' choose','');
+    boardout[i] = boardout[i].replace(' visited','');
+    boardout[i] = boardout[i].replace(' eaten','');
+    }
+  return boardout;
+}
+
+
+export function mark_possible_move(boardstat, piece, visited, has_moved) {
+  let boardstate = boardstat.slice();
+  visited.push(piece);
+  let pos;
+  let must_capture = MustCapture(boardstate, has_moved);
+  let possible_move = legalMove(boardstate, piece, visited, must_capture);
+  boardstate[piece] = boardstate[piece] + ' selected';
+  if (possible_move.length > 0) {
+    for (var j = 0; j < possible_move.length; j++) {
+      pos = possible_move[j];
+      boardstate[pos] = boardstate[pos] + ' available';
+    }
+  }
+  return boardstate
+}
+
+
+export function has_selected(board){
+  for (var i = 0; i<50; i++){
+    let piece = board[i];
+    if (piece.includes('selected')){
+      return i;
+    }
+  }
+  return -1
+}
+
+export function get_newpos(board){
+  for (var i = 0; i<50; i++){
+    let piece = board[i];
+    if (piece.includes('newpos')){
+      return i;
+    }
+  }
+  return -1
+}
+
 
 
 export function ToSquare(id) {
@@ -24,6 +176,22 @@ export function ToSquare(id) {
     var lookup = { "0":"e", "1":"d", "2":"c","3":"b", "4":"a"};
     return lookup[row]+column;
 }
+
+
+export function count_pieces(board) {
+  let my_pieces_count = 0;
+  let opp_pieces_count = 0;
+  for (var i = 0; i<50; i++){
+    const piece = board[i].split(' ')[0];
+    if (piece === 'one'){
+      ++my_pieces_count;
+    } else if (piece === 'two') {
+      ++opp_pieces_count;
+    }
+  }
+  return [my_pieces_count, opp_pieces_count]
+}
+
 
 export function tomoveString(logm) {
   for (var i = 0; i < logm.length; i++) {
@@ -67,7 +235,10 @@ export function legalMove(boardstate, id, visited, must_capture){
     if ((next_move % 10) === 0) {
         continue;
     }
-    if (((boardstate[next_move] === 'none') || (boardstate[next_move] === 'none eaten'))  && !(visited.includes(next_move))){
+    let piece = boardstate[next_move];
+    console.log(piece);
+    if (((piece === 'none') || (piece === 'none eaten'))  && !
+  (visited.includes(next_move))){
         if (must_capture){
             var len = visited.length;
             if (len >1){
@@ -120,44 +291,63 @@ export function has_capture(boardstate){
 }
 
 
-export function makeMove_choosen(boardstate, selected, newpos, i){
+export function makeMove_choosen(boardstate, selected, newpos, choosen){
   var movetype = newpos - selected;
   var direction, pos_eat;
-  boardstate = boardstate.map(function(item) { return item === 'none eaten' ? 'none' : item; });
-  if ((selected + 2*movetype) === i){
+  for (var i = 0; i<50; i++){
+      boardstate[i] = boardstate[i].replace(' eaten','');
+      boardstate[i] = boardstate[i].replace(' available','');
+      boardstate[i] = boardstate[i].replace(' selected','');
+      boardstate[i] = boardstate[i].replace(' choose','');
+    }
+  if ((selected + 2*movetype) === choosen){
     direction = movetype;
     pos_eat = newpos + direction;
-  } else if ((selected - movetype) === i){
+  } else if ((selected - movetype) === choosen){
     direction = -movetype;
     pos_eat = newpos + 2*direction;
   }
-  boardstate[selected] = 'none';
+  boardstate[selected] = 'none visited';
   boardstate[newpos] = 'one';
   while (boardstate[pos_eat] === 'two'){
       boardstate[pos_eat] = 'none eaten';
       pos_eat = pos_eat + direction;
   }
+
+  const visits = visited(boardstate);
+  boardstate = mark_possible_move(boardstate, newpos, visits, true);
   return boardstate;
 }
-
 
 
 export function makeMove(boardstate, selected, newpos, movetype){
     var direction;
     var pos_eat;
-    boardstate = boardstate.map(function(item) { return item === 'none eaten' ? 'none' : item; });
+    let was_pass = false;
+    for (var i = 0; i<50; i++){
+      boardstate[i] = boardstate[i].replace(' eaten','');
+      boardstate[i] = boardstate[i].replace(' available','');
+      boardstate[i] = boardstate[i].replace(' selected','');
+    }
     if (boardstate[selected + 2*movetype] === 'two'){
         direction = movetype;
         pos_eat = newpos + direction;
     } else if (boardstate[selected - movetype] === 'two'){
         direction = -movetype;
         pos_eat = newpos + 2*direction;
+    } else{
+      was_pass = true
     }
-    boardstate[selected] = 'none';
+
+    boardstate[selected] = 'none visited';
     boardstate[newpos] = 'one';
     while (boardstate[pos_eat] === 'two'){
         boardstate[pos_eat] = 'none eaten';
         pos_eat = pos_eat + direction;
+    }
+    const visits = visited(boardstate);
+    if (!(was_pass)) {
+      boardstate = mark_possible_move(boardstate, newpos, visits, true);
     }
     return boardstate;
   }
@@ -173,17 +363,9 @@ export function makeMove(boardstate, selected, newpos, movetype){
     return must_capture;
   }
 
-
   export function is_winner(board){
-    let my_pieces_count = 0;
-    let opp_pieces_count = 0;
-    for (var i = 0; i<50; i++){
-      if (board[i] === 'one'){
-        ++my_pieces_count;
-      } else if (board[i] === 'two') {
-        ++opp_pieces_count;
-      }
-    }
+
+    let [my_pieces_count, opp_pieces_count] = count_pieces(board)
     if (my_pieces_count === 0){
       return 'Computer WIN';
     } else if (opp_pieces_count === 0){
