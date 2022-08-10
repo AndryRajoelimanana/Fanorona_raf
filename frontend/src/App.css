@@ -127,19 +127,34 @@ body {
 
 }
 
-
-@keyframes myAnimation{
+@-webkit-keyframes fadeout {
   0%{
     opacity: 1;
-    background: grey;
+    /*background: darkgreen;*/
   }
-  30%{
+  /*70%{
     display: none;
-    opacity: 0;
-  }
+    opacity: 0.75;
+  }*/
   100%{
     display: none;
     opacity: 0;
+  }
+}
+
+
+@keyframes fadeout{
+  0%{
+    opacity: 1;
+    /* background: darkgreen;*/
+  }
+  /*70%{
+    display: none;
+    opacity: 0.75;
+  }*/
+  100%{
+    display: none;
+    opacity: 0.;
   }
 }
 
@@ -354,15 +369,14 @@ margin: 0 0 10% 0;
   grid-template-columns: repeat(3,50%); 
 }
 
-.player-one, .player-two , .player-none{
+.player-one, .player-two , .player-zero{
   border-radius: 50%;
   width: 60%;
   height: 60%;
+  caret-color: rgba(0,0,0,0);
   -ms-transform: translate(-50%, -51%);
       transform: translate(-50%, -51%);
 }
-
-
 
 
 .player-one {
@@ -377,29 +391,70 @@ margin: 0 0 10% 0;
   background-color:#e26b6b;
 }
 
-.player-none {
+
+/*.player-zero {
   background-color: none;
   border: none;
-}
+}*/
+
 
 .animated {
-  transition-property: background-color;
-  transition-duration: 1s;
+     opacity:0;
+     width:0;
+     height:0;
+     transition: width 0.5s 0.5s, height 0.5s 0.5s, opacity 2.5s;
 }
 
-.player-none.eaten {
-  background-color: green;
-  /* box-shadow: 0 0 10px 5px #16A8C7;
-  animation-name: myAnimation;
-  animation-duration: 1000ms;
-  animation-fill-mode: forwards;*/
+.eaten_one {
+  background-color: #444;
+  box-shadow: 0px 0px 5px 5px #16A8C7;
+  border: 5px solid #6F3FFF;
+  /*opacity:0;*/
+  /*transition:background 0.1s ease-out;*/
+  /*-webkit-animation: fadeout 0.3s linear forwards;
+  animation: fadeout 0.3s linear forwards;*/
 }
+
+.eaten_one::after {
+  background-color: none;
+  box-shadow: 0px 0px 5px 5px none;
+  border: 5px solid none;
+  /*opacity:0;*/
+  transition:background-color 1.s ease-out;
+}
+
+.eaten_two {
+  background-color: #e26b6b;
+  box-shadow: 0px 0px 5px 5px darkblue;
+  border: 5px solid #FFE23F;
+  /*opacity:0;*/
+  /*transition:background-color 1.s ease-out;*/
+  /*-webkit-animation: fadeout 0.1s linear forwards;
+  animation: fadeout 0.1s linear forwards; */
+}
+
+.eaten_two::after {
+  /*background-color: none;
+  box-shadow: 0px 0px 5px 5px none;
+  border: 5px solid none;*/
+  opacity:0;
+  transition:background-color 1.s ease-out;
+}
+
+
 
 .selected {
   box-shadow: 0px 0px 5px 5px #16A8C7;
   /* background-color: #6a6aff!important; */
   border: 5px solid #D0E8AC;
 }
+
+.choose {
+  box-shadow: 0px 0px 5px 5px #E3D081;
+  /* background-color: #6a6aff!important; */
+  border: 5px solid #54494B;
+}
+
 
 .available {
   background-color: lightgray;

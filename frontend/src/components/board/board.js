@@ -7,17 +7,30 @@ const Stones = (props) => {
   const idbox = ToSquare(id);
   const selected = props.selected;
   const available = props.available;
-  var classname = "player-"+props.stoneClasses +' '+idbox;
+  const choose = props.choose;
+  const eaten = props.eaten;
+  const turn_id = props.turn_id;
+  var classname = "player-"+props.stoneClasses;
   if (id === selected){
     classname = classname + '  selected';
   }
   if (available.includes(id)) {
     classname = classname + '  available';
   }
-  // console.log(props.stoneClasses);
-  // console.log(selected, classname);
+  if (choose.includes(id)) {
+    classname = classname + '  choose';
+  }
+  if (eaten.includes(id)) {
+    if (turn_id % 2 === 0){
+      classname = classname + ' eaten_one';
+    } else{
+      classname = classname + ' eaten_two';
+    }
+  }
+  classname = classname +' '+idbox;
   return (
-      <div className={classname}  id={id} onClick={props.onClick}>
+      <div className={classname} id={id} onClick={props
+    .onClick}>
       </div>
   );
 }
@@ -29,9 +42,13 @@ class Board extends React.Component {
     const stone = this.props.boardstate[i];
     const selected = this.props.selected;
     const available = this.props.available_move;
+    const choose = this.props.choose;
+    const eaten = this.props.eaten;
+    const turn_id = this.props.turn_id;
     return (
       <Stones stoneClasses={stone.split(' ')[0]} id={i}  selected={selected}
-  available={available} onClick={() => this.props.onClick(i)}
+  available={available} choose={choose} eaten={eaten} turn_id={turn_id}
+  onClick={() => this.props.onClick(i)}
       />
   );
   }
