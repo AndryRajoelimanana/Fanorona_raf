@@ -106,13 +106,13 @@ class App extends React.Component {
     }
   }
 
-  pass_game = () => {
+  pass_game = async () => {
     let visited = this.fetch_visited();
     if (visited.length === 0){
       return;
     }
     const newboard = this.fetch_board();
-    this.reset_newboard(newboard, this.fetch_visited());
+    await this.reset_newboard(newboard, this.fetch_visited());
   }
 
   handle_game_type = (event) =>{
@@ -139,17 +139,18 @@ class App extends React.Component {
 
   increase_turn = () => {return this.state.turn_id+1;}
 
-  reset_newboard = (board, visited) =>{
+  reset_newboard = async (board, visited) =>{
     let newboard = utils.new_board(board);
     const turn = this.increase_turn();
     const move_string = utils.tomoveString(visited);
-    if (turn === 1){
+    if (turn === 2){  // turn is already updated to turn + 1
       let game_type = utils.get_first_move(newboard, move_string)
       console.log('gametype'+game_type);
       this.setState(() => ({game_type: game_type}));
     }
     const history = {boardState: newboard, turn_id: turn, visited:move_string};
     const history_turn = this.AppendHistory(history);
+    await this.wait_here(300);
     this.setState(() => ({boardstate: newboard, turn_id:turn,visited:[], history_turn:history_turn}));
   }
 
@@ -223,18 +224,18 @@ class App extends React.Component {
           return
         }
         let newboard
-        [will_move, newboard] = utils.makeMove_choosen(boardstate, selected,new_pos, i);
+        [will_move, newboard] = utils.makeMove_choosen(boardstate,visited, selected,new_pos, i);
         if (this.check_winner(newboard)){
           this.restart_board();
           return
         }
-        visited.push(i);
+        // visited.push(new_pos);
         if (will_move){
           this.setState(() => ({boardstate: newboard, visited:visited}));
           await this.wait_here(600);
           return;
         } else {
-          this.reset_newboard(newboard, visited);
+          await this.reset_newboard(newboard, visited);
           return;
         }
       }
@@ -258,17 +259,18 @@ class App extends React.Component {
         return
       }
       let newboard1;
-      [will_move, newboard1] = utils.makeMove(boardstate, selected, i,movetype);
+      [will_move, newboard1] = utils.makeMove(boardstate, visited, selected, i, movetype);
       if (this.check_winner(newboard1)){
         this.restart_board();
         return
       }
-      visited.push(i);
+      // visited.push(i);
       if (will_move){
-        this.setState(() => ({boardstate: newboard1, visited:visited}));
         await this.wait_here(600);
+        this.setState(() => ({boardstate: newboard1, visited:visited}));
+
       } else {
-        this.reset_newboard(newboard1, visited);
+        await this.reset_newboard(newboard1, visited);
       }
       return
     }

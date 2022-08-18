@@ -371,6 +371,7 @@ margin: 0 0 10% 0;
 
 .player-one, .player-two , .player-zero{
   border-radius: 50%;
+  box-sizing: border-box;
   width: 60%;
   height: 60%;
   caret-color: rgba(0,0,0,0);
@@ -384,7 +385,11 @@ margin: 0 0 10% 0;
 }
 
 .player-one:hover {
-  border: 5px solid #a58e0d;
+  width: 60%;
+  height: 60%;
+  /*box-shadow: 0px 0px 5px 5px #D0E8AC;*/
+  border: 5px solid #D0E8AC;
+  box-shadow: 0px 0px 5px 5px #444;
 }
 
 .player-two {
@@ -405,41 +410,46 @@ margin: 0 0 10% 0;
      transition: width 0.5s 0.5s, height 0.5s 0.5s, opacity 2.5s;
 }
 
+
 .eaten_one {
   background-color: #444;
-  box-shadow: 0px 0px 5px 5px #16A8C7;
-  border: 5px solid #6F3FFF;
-  /*opacity:0;*/
-  /*transition:background 0.1s ease-out;*/
+  box-shadow: 0px 0px 5px 5px #F1F1FF ;
+  border: 5px solid #8b8bff  ;
+  opacity:0;
+  transition:opacity 1.5s ease-out;
   /*-webkit-animation: fadeout 0.3s linear forwards;
   animation: fadeout 0.3s linear forwards;*/
 }
 
+/*
 .eaten_one::after {
-  background-color: none;
+  background-color: transparent;
   box-shadow: 0px 0px 5px 5px none;
   border: 5px solid none;
-  /*opacity:0;*/
+  opacity:0;
   transition:background-color 1.s ease-out;
-}
+}*/
 
 .eaten_two {
   background-color: #e26b6b;
-  box-shadow: 0px 0px 5px 5px darkblue;
-  border: 5px solid #FFE23F;
-  /*opacity:0;*/
-  /*transition:background-color 1.s ease-out;*/
+  box-shadow: 0px 0px 5px 5px #16A8C7;
+  border: 5px solid #e4a6ae;
+  opacity:0;
+  /*transition:background-color 5.s ease-out;
+  transition:box-shadow 5.s ease-out;*/
+  transition:opacity 1.5s ease-out;
   /*-webkit-animation: fadeout 0.1s linear forwards;
   animation: fadeout 0.1s linear forwards; */
 }
 
+/*
 .eaten_two::after {
-  /*background-color: none;
-  box-shadow: 0px 0px 5px 5px none;
-  border: 5px solid none;*/
+  background-color: transparent;
+  box-shadow: 0px 0px 5px 5px transparent;
+  border: 5px solid transparent;
   opacity:0;
   transition:background-color 1.s ease-out;
-}
+}*/
 
 
 
@@ -447,6 +457,7 @@ margin: 0 0 10% 0;
   box-shadow: 0px 0px 5px 5px #16A8C7;
   /* background-color: #6a6aff!important; */
   border: 5px solid #D0E8AC;
+  transition: all 0.2s linear;
 }
 
 .choose {

@@ -181,13 +181,6 @@ class Player(Piece):
     @property
     def str(self):
         return "{0:064b}".format(self.value % (1 << 64))
-    # @property
-    # def is_white(self):
-    #     return self._is_white
-    #
-    # @property
-    # def captured(self):
-    #     return self._captured
 
     def list(self):
         return [list(self[i * 10 + 1:(i + 1) * 10]) for i in range(5)]
@@ -215,12 +208,7 @@ class Player(Piece):
 
         nn = next_to(safe_moves) & active_squares
         act = nn | next_to(safe_moves.active_square)
-        ff = (act | (active_squares & next_to(act & self))) & self
-        return ff
-        # if isinstance(ff.val, Piece) or isinstance(ff.val, Player):
-        #     return ff
-        # else:
-        #     return Piece(ff)
+        return (act | (active_squares & next_to(act & self))) & self
 
     def attack(self, other) -> PieceT:
         open_board = self.open_board(other)

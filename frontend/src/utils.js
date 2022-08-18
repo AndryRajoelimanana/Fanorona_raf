@@ -25,42 +25,6 @@ export function was_capture(prev, curr) {
 }
 
 
-export function has_available(board){
-  let available_move=[];
-  for (var i = 0; i<50; i++){
-    const piece = board[i];
-    if (piece.includes('available')){
-      available_move.push(i);
-    }
-  }
-  return available_move;
-}
-
-
-export function get_eaten(board){
-  let eaten=[];
-  for (var i = 0; i<50; i++){
-    const piece = board[i];
-    if (piece.includes('eaten')){
-      eaten.push(i);
-    }
-  }
-  return eaten;
-}
-
-
-export function visited(board){
-  let visits=[];
-  for (var i = 0; i<50; i++){
-    const piece = board[i];
-    if (piece.includes('visited')){
-      visits.push(i);
-    }
-  }
-  return visits;
-}
-
-
 export function get_first_move(board, move_string){
   let game_type;
   switch(move_string){
@@ -87,16 +51,6 @@ export function get_first_move(board, move_string){
   return game_type;
 }
 
-export function must_choose(board){
-  let choose=[];
-  for (var i = 0; i<50; i++){
-    const piece = board[i];
-    if (piece.includes('choose')){
-      choose.push(i);
-    }
-  }
-  return choose;
-}
 
 export function make_computer_move(board, moves){
   let boardstate = board;
@@ -104,7 +58,9 @@ export function make_computer_move(board, moves){
   const eaten = moves[1];
   boardstate = new_board(boardstate);
   if (eaten.length === 0){
-    boardstate[selected] = 'zero visited';
+    // boardstate[selected] = 'zero visited';
+    // return boardstate;
+    alert('Bad eaten/moves');
     return boardstate;
   }
   for (var j=0; j<eaten.length; j++){
@@ -119,82 +75,117 @@ export function make_computer_move(board, moves){
 }
 
 
-export function undo_selected(board){
+export function un_mark(board, list_keys){
   let boardout = board.slice();
-  for (var i = 0; i<50; i++){
-    const piece = boardout[i];
-    boardout[i] = piece.replace(' selected','');
-    boardout[i] = piece.replace(' available','');
-    // if (piece.includes('selected')){
-    //  board[i] = piece.replace(' selected','');
+  for (var i = 0; i<50; i++) {
+    for (var j = 0; j < list_keys.length; j++) {
+      boardout[i] = boardout[i].replace(' ' + list_keys[j], '');
     }
-  return board;
+  }
+  return boardout;
 }
 
+
+export function undo_selected(board){
+    return un_mark(board, ['available', 'selected']);
+}
+
+
 export function new_board(board){
-  let boardout = board.slice();
-  for (var i = 0; i<50; i++){
-    boardout[i] = boardout[i].replace(' selected','');
-    boardout[i] = boardout[i].replace(' available','');
-    boardout[i] = boardout[i].replace(' choose','');
-    boardout[i] = boardout[i].replace(' visited','');
-    boardout[i] = boardout[i].replace(' eaten','');
-    boardout[i] = boardout[i].replace(' animated','');
-    boardout[i] = boardout[i].replace(' newpos','');
-    }
-  return boardout;
+  let keys = ['selected', 'choose', 'available', 'visited', 'eaten', 'animated', 'newpos'];
+  return un_mark(board, keys);
 }
 
 export function un_mark_available(board){
-  let boardout = board.slice();
-  for (var i = 0; i<50; i++){
-    boardout[i] = boardout[i].replace(' available','');
-    boardout[i] = boardout[i].replace(' selected','');
-    }
-  return boardout;
+  return un_mark(board, ['available', 'selected']);
 }
 
+
+export function has_keys(board, keys){
+  for (var i = 0; i<50; i++){
+    let piece = board[i];
+    if (piece.includes(keys)){
+      return i;
+    }
+  }
+  return -1
+}
+
+
+export function has_selected(board){
+  return has_keys(board, 'selected')
+}
+
+
+export function get_newpos(board){
+  return has_keys(board, 'newpos')
+}
+
+
+
+export function get_pieces(board, keys){
+  let outlist=[];
+  for (var i = 0; i<50; i++){
+    const piece = board[i];
+    if (piece.includes(keys)){
+      outlist.push(i);
+    }
+  }
+  return outlist;
+}
+
+
+export function has_available(board){
+  return get_pieces(board, 'available');
+}
+
+
+export function get_eaten(board){
+  return get_pieces(board, 'eaten');
+}
+
+
+export function visited(board){
+  return get_pieces(board, 'visited');
+}
+
+
+export function must_choose(board){
+  return get_pieces(board, 'choose');
+}
+
+
+export function mark_piece(board, piece, keys){
+  board[piece] = board[piece] + ' '+keys;
+  return board;
+}
+
+export function mark_available(board, piece){
+  return mark_piece(board, piece, 'available');
+}
+
+export function mark_selected(board, piece){
+  return mark_piece(board, piece, 'selected');
+}
 
 export function mark_possible_move(boardstat, piece, visited, has_moved) {
   let boardstate = boardstat.slice();
   boardstate = un_mark_available(boardstate);
-  visited.push(piece);
+  // visited.push(piece);
   let pos;
   let must_capture = MustCapture(boardstate, has_moved);
   let possible_move = legalMove(boardstate, piece, visited, must_capture);
-  boardstate[piece] = boardstate[piece] + ' selected';
+  mark_selected(boardstate, piece);
   if (possible_move.length > 0) {
     for (var j = 0; j < possible_move.length; j++) {
       pos = possible_move[j];
-      boardstate[pos] = boardstate[pos] + ' available';
+      mark_available(boardstate, pos);
     }
     return [true, boardstate];
   } else{
     return [false, new_board(boardstate)];
   }
 
-}
-
-
-export function has_selected(board){
-  for (var i = 0; i<50; i++){
-    let piece = board[i];
-    if (piece.includes('selected')){
-      return i;
-    }
-  }
-  return -1
-}
-
-
-export function get_newpos(board){
-  for (var i = 0; i<50; i++){
-    let piece = board[i];
-    if (piece.includes('newpos')){
-      return i;
-    }
-  }
-  return -1
 }
 
 
@@ -265,7 +256,28 @@ export function getTurn1(history_turn){
 }
 
 
-
+export function piece_can_capture(boardstate, id) {
+  var valid_move, capture;
+  // var last_move, last_id;
+  if ((id % 2) !== ( (~~ (id / 10)
+  ) % 2)) {
+  valid_move = [-11, -10, -9, -1, 1, 9, 10, 11];
+  } else{
+  valid_move = [-10, -1, 1, 10];
+  }
+  for (var i=0; i<valid_move.length; i++){
+    var next_move = id + valid_move[i];
+    if (((next_move % 10) === 0) || (next_move < 0)) {
+        continue;
+    }
+    let piece = boardstate[next_move];
+    capture = can_capture(boardstate, id, valid_move[i])
+    if ((piece.includes('zero')) && capture){
+        return true
+    }
+  }
+  return false;
+}
 
 
 export function legalMove(boardstate, id, visited, must_capture){
@@ -324,6 +336,17 @@ export function can_capture(boardstate, id, movetype){
 }
 
 
+export function board_has_capture(boardstate){
+    const my_pieces_idx = boardstate.reduce((a, e, i) => (e === 'one') ? a.concat(i) : a, []);
+    // var visited = [];
+    for (var i=0; i<my_pieces_idx.length; i++){
+      if (piece_can_capture(boardstate, my_pieces_idx[i])){
+            return true;
+      }
+    }
+    return false;
+}
+
 export function has_capture(boardstate){
     const my_pieces_idx = boardstate.reduce((a, e, i) => (e === 'one') ? a.concat(i) : a, []);
     var pmove;
@@ -339,15 +362,11 @@ export function has_capture(boardstate){
 }
 
 
-export function makeMove_choosen(boardstate, selected, newpos, choosen){
+export function makeMove_choosen(boardstate, visits, selected, newpos, choosen){
   var movetype = newpos - selected;
   var direction, pos_eat;
-  for (var i = 0; i<50; i++){
-      boardstate[i] = boardstate[i].replace(' eaten','');
-      boardstate[i] = boardstate[i].replace(' available','');
-      boardstate[i] = boardstate[i].replace(' selected','');
-      boardstate[i] = boardstate[i].replace(' choose','');
-    }
+  boardstate = un_mark(boardstate, ['eaten', 'choose', 'available', 'selected']);
+
   if ((selected + 2*movetype) === choosen){
     direction = movetype;
     pos_eat = newpos + direction;
@@ -361,22 +380,17 @@ export function makeMove_choosen(boardstate, selected, newpos, choosen){
       boardstate[pos_eat] = 'zero eaten';
       pos_eat = pos_eat + direction;
   }
-  const visits = visited(boardstate);
-  visits.push(selected);
+  visits.push(newpos);
   return mark_possible_move(boardstate, newpos, visits, true);
 }
 
 
-export function makeMove(boardstate, selected, newpos, movetype){
+export function makeMove(boardstate, visits, selected, newpos, movetype){
     var direction;
     var pos_eat;
     let was_pass = false;
-    for (var i = 0; i<50; i++){
-      boardstate[i] = boardstate[i].replace(' eaten','');
-      boardstate[i] = boardstate[i].replace(' available','');
-      boardstate[i] = boardstate[i].replace(' selected','');
-      boardstate[i] = boardstate[i].replace(' animated','');
-    }
+    boardstate = un_mark(boardstate, ['eaten', 'animated', 'available', 'selected']);
+
     if (boardstate[selected + 2*movetype] === 'two'){
         direction = movetype;
         pos_eat = newpos + direction;
@@ -395,8 +409,8 @@ export function makeMove(boardstate, selected, newpos, movetype){
         boardstate[pos_eat] = 'zero eaten';
         pos_eat = pos_eat + direction;
       }
-      const visits = visited(boardstate);
-      visits.push(selected);
+      // const visits = visited(boardstate);
+      visits.push(newpos);
       return mark_possible_move(boardstate, newpos, visits, true);
     } else{
       boardstate[selected] = 'zero';
@@ -408,13 +422,11 @@ export function makeMove(boardstate, selected, newpos, movetype){
   
 
 export function MustCapture(boardstate, has_moved){
-  var must_capture;
   if (has_moved){
-    must_capture = true;
+    return true;
   } else {
-    must_capture = has_capture(boardstate);
+    return board_has_capture(boardstate);
   }
-  return must_capture;
 }
 
 export function is_winner(board){

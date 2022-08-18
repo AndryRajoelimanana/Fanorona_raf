@@ -1,7 +1,8 @@
+import os
+# printing environment variables
+print(os.environ['PATH'])
 from Utils.Bits import Bits
 from Utils.utils import *
-# from board.Board1 import Board
-import Utils.configs
 
 
 class Evaluation:
@@ -122,9 +123,10 @@ class Evaluation:
             my_piece_count += myActivity
             opp_piece_count += oppActivity
             evaluation = evaluate_pieces(my_piece_count, opp_piece_count,
-                                           control=control)
+                                         control=control)
             if debug:
-                print(f'CONTROL : {evaluation} {my_piece_count} {opp_piece_count} {ratios[opp_piece_count]} {ratios[my_piece_count]}')
+                print(
+                    f'CONTROL : {evaluation} {my_piece_count} {opp_piece_count} {ratios[opp_piece_count]} {ratios[my_piece_count]}')
             return evaluation
 
         opponent_pieces = b.oppPieces
@@ -171,7 +173,7 @@ class Evaluation:
             return evaluation
         # Find fortresses and estimate material cost to break them
         attackZone = 0
-        fortress = 0
+        # fortress = 0
         fortressStrength = 0
         defendingActivity = defendingActivity
         defendingTrapped = defendingTrapped
@@ -179,9 +181,9 @@ class Evaluation:
         if not attackingPieces.fortress() and defendingPieces.guard():
             fortress = defendingPieces.fortress('lg_left')
             # if piece in fortress greater than 1
-            fortress = fortress & (fortress -1)
+            fortress = fortress & (fortress - 1)
             if fortress != 0:
-                fortress = fortress & (fortress -1)
+                fortress = fortress & (fortress - 1)
                 if fortress == 0:
                     fortressStrength = 1
                 else:
@@ -194,7 +196,7 @@ class Evaluation:
         elif not attackingPieces.fortress('sm_left') and \
                 defendingPieces.guard('sm_left'):
             fortress = defendingPieces.fortress('sm_left')
-            fortress = fortress & (fortress -1)
+            fortress = fortress & (fortress - 1)
             if fortress != 0:
                 fortressStrength = 1
                 attackZone = sm_left_attack
@@ -206,9 +208,9 @@ class Evaluation:
         if not attackingPieces.fortress('lg_right') and \
                 defendingPieces.guard('lg_right'):
             fortress = defendingPieces.fortress('lg_right')
-            fortress = fortress & (fortress -1)
+            fortress = fortress & (fortress - 1)
             if fortress != 0:
-                fortress = fortress & (fortress -1)
+                fortress = fortress & (fortress - 1)
                 if fortress == 0:
                     fortressStrength += 1
                 else:
@@ -221,7 +223,7 @@ class Evaluation:
         elif not attackingPieces.fortress('sm_right') and \
                 defendingPieces.guard('sm_right'):
             fortress = defendingPieces.fortress('sm_right')
-            fortress = fortress & (fortress -1)
+            fortress = fortress & (fortress - 1)
             if fortress != 0:
                 fortressStrength += 1
                 attackZone |= sm_right_attack
@@ -237,7 +239,7 @@ class Evaluation:
                             attackingTrapped - defendingTrapped) - Evaluation.conversion_weight * defendingActivity
             if debug:
                 print(f'Eval : Fortress broken{evalb} {attackingActivity}'
-                  f' {defendingActivity} {fortressStrength}')
+                      f' {defendingActivity} {fortressStrength}')
         else:
             a = 2 * attackingActivity + attackingTrapped
             d = 2 * defendingActivity + defendingTrapped
@@ -259,7 +261,7 @@ class Evaluation:
                 space = newSpace
 
             evalb += Evaluation.forward_weight * (
-                attackingPieces & attackZone).count - Evaluation.space_weight\
+                    attackingPieces & attackZone).count - Evaluation.space_weight \
                      * space.count
             if debug:
                 print(f'Eval : slower low-order eval {space.val} {attackZone} '
@@ -281,6 +283,7 @@ if __name__ == '__main__':
     # opp = 9223927819925454848 & Bits.on_board
     # my = 169295288
     # opp = 555783070679040
+
     my = sum([1 << i for i in [25, 35, 45]])
     opp = sum([1 << i for i in [22, 31, 32]])
 
