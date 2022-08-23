@@ -1,6 +1,3 @@
-import os
-# printing environment variables
-print(os.environ['PATH'])
 from Utils.Bits import Bits
 from Utils.utils import *
 
@@ -289,6 +286,8 @@ if __name__ == '__main__':
 
     my = Player(my)
     opp = Player(opp)
+    print(my)
+    print(opp)
     # b = Board(my, opp)
     # eval = Evaluation.evaluate(b)
     #

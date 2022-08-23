@@ -4,8 +4,11 @@ import './App.css';
 import * as utils from './utils.js';
 import axios from 'axios';
 import { Container, Row, Col, Form} from 'react-bootstrap';
-import Board from "./components/board/board.js";
+import BoardRender from "./components/board/board.js";
 import MoveStatus from "./components/Move/MoveStatus.js";
+import { MoveFirst, GameType, SearchDepth } from "./components/Menu/game_options.js";
+import GameOptionsBar from "./components/Menu/command_button.js";
+
 
 class App extends React.Component {
   constructor(props) {
@@ -25,6 +28,9 @@ class App extends React.Component {
       }],
     }
     this.state = this.initialState;
+    this.undo_move = this.undo_move.bind(this);
+    this.pass_game = this.pass_game.bind(this);
+    this.restart_board = this.restart_board.bind(this);
   }
 
   restart_board = () => {
@@ -42,11 +48,11 @@ class App extends React.Component {
   }
 
 
-
   componentDidUpdate = (prevProps, prevState) => {
     if (this.state.turn_id !== prevState.turn_id){
       let bb = utils.new_board(this.fetch_board());
       if ((this.state.turn_id % 2) === 0){
+        this.setState(() => ({wait_ai: true}));
         var board = bb.slice();
         const depth = this.state.depth;
         let current_params = {'boardstate':board, 'depth':depth};
@@ -67,15 +73,15 @@ class App extends React.Component {
 
           this.setState(() => ({boardstate: utils.new_board(newboard),
   turn_id:turn, history_turn:history_turn}));
-          // await this.wait_here(600)
-          // console.log(this.fetch_board());
         if (this.check_winner(newboard)){
           this.restart_board();
           return;
         }
-        }).catch(err => {
+        }
+        ).catch(err => {
           alert(err);
         });
+        this.setState(() => ({wait_ai: false}));
       }
     }
   }
@@ -88,6 +94,10 @@ class App extends React.Component {
 
 
   undo_move = () => {
+    const turn = this.fetch_turn_id()
+    if (turn % 2 === 0){
+      return;
+    }
     let currTurn = this.fetch_turn_id();
     currTurn = currTurn - 2;
     if (currTurn <= 1){
@@ -97,7 +107,7 @@ class App extends React.Component {
     let prev_hist_turn = this.state.history_turn.slice(0, currTurn);
     let board = prev_hist_turn[currTurn-1].boardState;
     this.setState(() => ({history_turn:prev_hist_turn, boardstate:board,
-  turn_id:currTurn}));
+  turn_id:currTurn, visited:[], }));
   }
 
   check_winner(newboard){
@@ -107,6 +117,10 @@ class App extends React.Component {
   }
 
   pass_game = async () => {
+    const turn = this.fetch_turn_id()
+    if (turn % 2 === 0){
+      return;
+    }
     let visited = this.fetch_visited();
     if (visited.length === 0){
       return;
@@ -140,23 +154,31 @@ class App extends React.Component {
   increase_turn = () => {return this.state.turn_id+1;}
 
   reset_newboard = async (board, visited) =>{
+    console.log(this.state.turn_id, visited);
+    this.setState(() => ({boardstate: board, visited:visited}));
+    await this.wait_here(300);
     let newboard = utils.new_board(board);
     const turn = this.increase_turn();
     const move_string = utils.tomoveString(visited);
     if (turn === 2){  // turn is already updated to turn + 1
       let game_type = utils.get_first_move(newboard, move_string)
-      console.log('gametype'+game_type);
+      console.log('gametype '+game_type);
       this.setState(() => ({game_type: game_type}));
     }
     const history = {boardState: newboard, turn_id: turn, visited:move_string};
     const history_turn = this.AppendHistory(history);
     await this.wait_here(300);
     this.setState(() => ({boardstate: newboard, turn_id:turn,visited:[], history_turn:history_turn}));
+    if (this.check_winner(newboard)){
+      this.restart_board();
+      return;
+    }
   }
 
   fetch_board = () => {return this.state.boardstate};
   fetch_turn_id = () => {return this.state.turn_id};
   fetch_visited = () => {return this.state.visited};
+  wait_computer = () => {return this.state.wait_ai};
 
   onClick = async (i) => {
     const turn_id = this.state.turn_id;
@@ -229,10 +251,9 @@ class App extends React.Component {
           this.restart_board();
           return
         }
-        // visited.push(new_pos);
         if (will_move){
           this.setState(() => ({boardstate: newboard, visited:visited}));
-          await this.wait_here(600);
+          await this.wait_here(300);
           return;
         } else {
           await this.reset_newboard(newboard, visited);
@@ -240,8 +261,6 @@ class App extends React.Component {
         }
       }
     }
-
-    // let must_capture = utils.MustCapture(boardstate, has_moved);
 
     if (!(available_move.includes(i))){
       return;
@@ -264,22 +283,19 @@ class App extends React.Component {
         this.restart_board();
         return
       }
-      // visited.push(i);
-      if (will_move){
-        await this.wait_here(600);
-        this.setState(() => ({boardstate: newboard1, visited:visited}));
 
+      if (will_move){
+        this.setState(() => ({boardstate: newboard1, visited:visited}));
+        await this.wait_here(300);
       } else {
+        console.log('tato', newboard1);
         await this.reset_newboard(newboard1, visited);
       }
       return
     }
   }
-  
 
   render() {
-    
-    //const status = this.status;
 
     const turn_id = this.state.turn_id;
     const boardstate = this.state.boardstate;
@@ -291,7 +307,7 @@ class App extends React.Component {
     console.log(boardstate);
     let status;
     if (turn_id % 2 === 0){
-      status = 'Computer is searching...';
+      status = 'AI is searching...';
     } else if (must_choose.length){
       status = 'Choose: '+utils.ToSquare(must_choose[0])+' or '+utils.ToSquare(must_choose[1]);
       alert("Choose between "+utils.ToSquare(must_choose[0])+' and '+utils.ToSquare(must_choose[1]));
@@ -302,91 +318,55 @@ class App extends React.Component {
     }
 
     const hist_in = this.state.history_turn.slice(1);
-    const new_history = utils.getTurn1(hist_in);
+    const new_history = utils.getTurn(hist_in);
     const disabled_game = this.state.move_first === 'human' ? true : false;
-
 
     return (
       <div className='main'>
         <Container fluid={true} id={'container1'}>
-          <Row noGutters={true}>
+          <Row>
             <Col xs={12} sm={12} md={8}>
-                <Form className='form_command'>
-                <Form.Row className="justify-content-md-center">
-                  <Form.Group as={Col} md="3" xs="4" controlId="opponent">
-                    <Form.Label>Move First</Form.Label>
-                    <Form.Control value={this.state.move_first} as="select" onChange={this.handle_move_first}>
-                        <option value="computer">Computer</option>
-                        <option value="human">Human</option>
-                    </Form.Control>
-                  </Form.Group>
-
-                  <Form.Group as={Col} md="3"  xs="4" controlId="move_first">
-                    <Form.Label>Game Type</Form.Label>
-                    <Form.Control disabled={disabled_game}  value={this.state.game_type} as="select" onChange={this.handle_game_type} >
-                      <option value="vakyloha">Vaky loha</option>
-                      <option value="kobana">Kobana</option>
-                      <option value="fohy">Fohy</option>
-                      <option value="havia">Havia</option>
-                      <option value="havanana">Havanana</option>
-                    </Form.Control>
-                  </Form.Group>
-
-                  <Form.Group as={Col} md="3"  xs="4" controlId="depth">
-                    <Form.Label>Depth</Form.Label>
-                    <Form.Control value={this.state.depth} as="select"  onChange={this.handle_depth}>
-                      <option>1</option>
-                      <option>2</option>
-                      <option>3</option>
-                      <option>4</option>
-                      <option>5</option>
-                    </Form.Control>
-                  </Form.Group>
-                </Form.Row>
+              <Form className='form_command'>
+                  <Form.Row className="justify-content-md-center">
+                    <MoveFirst move_first={this.state.move_first} onChange={this.handle_move_first}/>
+                    <GameType disabled_game={disabled_game} game_type={this.state.game_type} onChange={this.handle_game_type} />
+                    <SearchDepth depth={this.state.depth} onChange={this.handle_depth}/>
+                  </Form.Row>
               </Form>
             </Col>
           </Row>
-          <Row noGutters={true}>
-            <div className='windowa'>
-            <Row noGutters={true}> 
-              <Col xs={12} sm={12} md={8}  className='game_windows row-eq-height'>
-                <div className='aspect_ratiodiv'>
-                  <Container fluid={true} className='BoardCont' >
-                      <Row noGutters={true} className="crosscont"  >
-                        <div className='aspect_ratiodiv1'>
-                        <Board
-                          boardstate={boardstate}
-                          selected = {selected}
-                          available_move = {available_move}
-                          choose = {must_choose}
-                          eaten = {eaten}
-                          turn_id = {turn_id}
-                          onClick={i => this.onClick(i)}
-                        />
-                        </div>
-                      </Row>
-                      <Row noGutters={true} className="command_button" >
-                          <Col style={{ textAlign: "center" }}>
-                            <button  className="game_button"  onClick={() => this.restart_board()}>Restart</button>
-                          </Col>
-                          <Col style={{ textAlign: "center" }}>
-                            <button  className="game_button"   onClick={() => this.pass_game()}>Pass</button>
-                          </Col>
-                          <Col style={{ textAlign: "center" }}>
-                            <button  className="game_button"   onClick={() => this.undo_move()}>Undo</button>   
-                          </Col>
-                      </Row>
-                      
-                  </Container>
-                </div>
-              </Col>
-              <Col xs={12} sm={12} md={4} className="status_window row-eq-height">
-                <MoveStatus 
-                  status={status} move_string={new_history}
-                />
-              </Col>
-            </Row>
-            </div>
+
+          <Row>
+              <Row noGutters={true}> 
+                <Col xs={12} sm={12} md={8}  className='game_windows row-eq-height'>
+                  <div className='aspect_ratiodiv'>
+                    <Container fluid={true} className='BoardCont' >
+                        <Row noGutters={true} className="crosscont"  >
+                          <div className='aspect_ratiodiv1'>
+                          <BoardRender
+                            boardstate={boardstate}
+                            selected = {selected}
+                            available_move = {available_move}
+                            choose = {must_choose}
+                            eaten = {eaten}
+                            turn_id = {turn_id}
+                            onClick={i => this.onClick(i)}
+                          />
+                          </div>
+                        </Row>
+                        <Row noGutters={true} className="command_button" >
+                          <GameOptionsBar createNewGame={this.restart_board} passgame={this.pass_game} undogame={this.undo_move} />
+                        </Row>
+                        
+                    </Container>
+                  </div>
+                </Col>
+                <Col xs={12} sm={12} md={4} className="status_window row-eq-height">
+                  {/* <div className='aspect_ratiodiv1'> */}
+                    <MoveStatus status={status} move_string={new_history} />
+                  {/* </div> */}
+                </Col>
+              </Row>
           </Row>
         </Container>
       </div>
@@ -394,6 +374,97 @@ class App extends React.Component {
   }
 };
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export default App;
+
+
+
+
+
+    // return (
+    //   <div className='main'>
+    //     <Container fluid={true} id={'container1'}>
+    //       <Row noGutters={true}>
+    //         <Col xs={12} sm={12} md={8}>
+    //             <Form className='form_command'>
+    //             <Form.Row className="justify-content-md-center">
+    //               <Form.Group as={Col} md="3" xs="4" controlId="opponent">
+    //                 <Form.Label>Move First</Form.Label>
+    //                 <Form.Control value={this.state.move_first} as="select" onChange={this.handle_move_first}>
+    //                     <option value="computer">Computer</option>
+    //                     <option value="human">Human</option>
+    //                 </Form.Control>
+    //               </Form.Group>
+
+    //               <Form.Group as={Col} md="3"  xs="4" controlId="move_first">
+    //                 <Form.Label>Game Type</Form.Label>
+    //                 <Form.Control disabled={disabled_game}  value={this.state.game_type} as="select" onChange={this.handle_game_type} >
+    //                   <option value="vakyloha">Vaky loha</option>
+    //                   <option value="kobana">Kobana</option>
+    //                   <option value="fohy">Fohy</option>
+    //                   <option value="havia">Havia</option>
+    //                   <option value="havanana">Havanana</option>
+    //                 </Form.Control>
+    //               </Form.Group>
+
+    //               <Form.Group as={Col} md="3"  xs="4" controlId="depth">
+    //                 <Form.Label>Depth</Form.Label>
+    //                 <Form.Control value={this.state.depth} as="select"  onChange={this.handle_depth}>
+    //                   <option>1</option>
+    //                   <option>2</option>
+    //                   <option>3</option>
+    //                   <option>4</option>
+    //                   <option>5</option>
+    //                 </Form.Control>
+    //               </Form.Group>
+    //             </Form.Row>
+    //           </Form>
+    //         </Col>
+    //       </Row>
+    //       <Row noGutters={true}>
+    //         <div className='windowa'>
+    //         <Row noGutters={true}> 
+    //           <Col xs={12} sm={12} md={8}  className='game_windows row-eq-height'>
+    //             <div className='aspect_ratiodiv'>
+    //               <Container fluid={true} className='BoardCont' >
+    //                   <Row noGutters={true} className="crosscont"  >
+    //                     <div className='aspect_ratiodiv1'>
+    //                     <Board
+    //                       boardstate={boardstate}
+    //                       selected = {selected}
+    //                       available_move = {available_move}
+    //                       choose = {must_choose}
+    //                       eaten = {eaten}
+    //                       turn_id = {turn_id}
+    //                       onClick={i => this.onClick(i)}
+    //                     />
+    //                     </div>
+    //                   </Row>
+    //                   <Row noGutters={true} className="command_button" >
+    //                       <Col style={{ textAlign: "center" }}>
+    //                         <button  className="game_button"  onClick={() => this.restart_board()}>Restart</button>
+    //                       </Col>
+    //                       <Col style={{ textAlign: "center" }}>
+    //                         <button  className="game_button"   onClick={() => this.pass_game()}>Pass</button>
+    //                       </Col>
+    //                       <Col style={{ textAlign: "center" }}>
+    //                         <button  className="game_button"   onClick={() => this.undo_move()}>Undo</button>   
+    //                       </Col>
+    //                   </Row>
+                      
+    //               </Container>
+    //             </div>
+    //           </Col>
+    //           <Col xs={12} sm={12} md={4} className="status_window row-eq-height">
+    //             <MoveStatus 
+    //               status={status} move_string={new_history}
+    //             />
+    //           </Col>
+    //         </Row>
+    //         </div>
+    //       </Row>
+    //     </Container>
+    //   </div>
+    // )
+

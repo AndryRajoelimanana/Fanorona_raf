@@ -36,7 +36,7 @@ const Stones = (props) => {
 }
 
 
-class Board extends React.Component {
+class BoardRender extends React.Component {
 
   RenderStones = (i) => {
     const stone = this.props.boardstate[i];
@@ -124,4 +124,4 @@ class Board extends React.Component {
 }
 
 
-export default Board;
+export default BoardRender;

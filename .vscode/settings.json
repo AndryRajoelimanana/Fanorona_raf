@@ -1,0 +1,11 @@
+{
+  "python.autoComplete.extraPaths": [
+  ],
+  "python.defaultInterpreterPath": "/home/andry/PycharmProjects/Fanorona/venv/bin/python",
+  "python.envFile": "/home/andry/PycharmProjects/Fanorona/.env",
+  "python.analysis.extraPaths": [],
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "/home/andry/PycharmProjects/Fanorona/"
+},
+}
+

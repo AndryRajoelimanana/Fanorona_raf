@@ -1,10 +1,10 @@
 export function create_board(my_pieces, opp_pieces){
-    var stones = Array(50).fill('zero');
-    var my_pieces_binrepr = (my_pieces).toString(2).padStart(64,'0');
-    var opp_pieces_binrepr = (opp_pieces).toString(2).padStart(64,'0');
-    var my_len = my_pieces_binrepr.length;
-    var opp_len = opp_pieces_binrepr.length;  
-    for (var i = 0; i < 50; i++) {
+    let stones = Array(50).fill('zero');
+    let my_pieces_binrepr = (my_pieces).toString(2).padStart(64,'0');
+    let opp_pieces_binrepr = (opp_pieces).toString(2).padStart(64,'0');
+    let my_len = my_pieces_binrepr.length;
+    let opp_len = opp_pieces_binrepr.length;  
+    for (let i = 0; i < 50; i++) {
       if (my_pieces_binrepr.charAt(my_len - i) === '1'){
         stones[i] = 'one';
       } else if (opp_pieces_binrepr.charAt(opp_len -i) === '1'){
@@ -183,7 +183,7 @@ export function mark_possible_move(boardstat, piece, visited, has_moved) {
     }
     return [true, boardstate];
   } else{
-    return [false, new_board(boardstate)];
+    return [false, boardstate];
   }
 
 }
@@ -224,23 +224,8 @@ export function tomoveString(logm) {
   return movelog;
 }
 
+
 export function getTurn(history_turn){
-  let new_history=[];
-  let item;
-  const hist_length = history_turn.length;
-  for (var i = 0; i < hist_length; i++){
-    if ((i % 2) === 0){
-      new_history.push({turn:i/2+1, human:history_turn[i].human, computer:" "});
-    } else{
-      item = new_history[new_history.length -1]
-      item.computer= history_turn[i].human;
-    }
-  }
-  return new_history;
-}
-
-
-export function getTurn1(history_turn){
   let new_history=[];
   let item;
   const hist_length = history_turn.length;
@@ -267,7 +252,7 @@ export function piece_can_capture(boardstate, id) {
   }
   for (var i=0; i<valid_move.length; i++){
     var next_move = id + valid_move[i];
-    if (((next_move % 10) === 0) || (next_move < 0)) {
+    if (((next_move % 10) === 0) || (next_move < 0) || (next_move > 49)) {
         continue;
     }
     let piece = boardstate[next_move];
@@ -292,7 +277,7 @@ export function legalMove(boardstate, id, visited, must_capture){
   }
   for (var i=0; i<valid_move.length; i++){
     var next_move = id + valid_move[i];
-    if (((next_move % 10) === 0) || (next_move < 0)) {
+    if (((next_move % 10) === 0) || (next_move < 0) || (next_move > 49)) {
         continue;
     }
     let piece = boardstate[next_move];

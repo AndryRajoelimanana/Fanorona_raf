@@ -19,7 +19,7 @@ class Search:
     searchBound = 7200
     ASPIRATION_WINDOW = 50
     currentEval = 0
-    time_max = 8000
+    time_max = 3000
 
     def __init__(self, game, boardin, ply=3):
         self.stop = False
