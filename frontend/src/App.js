@@ -362,9 +362,7 @@ class App extends React.Component {
                   </div>
                 </Col>
                 <Col xs={12} sm={12} md={4} className="status_window row-eq-height">
-                  {/* <div className='aspect_ratiodiv1'> */}
                     <MoveStatus status={status} move_string={new_history} />
-                  {/* </div> */}
                 </Col>
               </Row>
           </Row>
@@ -377,94 +375,4 @@ class App extends React.Component {
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export default App;
-
-
-
-
-
-    // return (
-    //   <div className='main'>
-    //     <Container fluid={true} id={'container1'}>
-    //       <Row noGutters={true}>
-    //         <Col xs={12} sm={12} md={8}>
-    //             <Form className='form_command'>
-    //             <Form.Row className="justify-content-md-center">
-    //               <Form.Group as={Col} md="3" xs="4" controlId="opponent">
-    //                 <Form.Label>Move First</Form.Label>
-    //                 <Form.Control value={this.state.move_first} as="select" onChange={this.handle_move_first}>
-    //                     <option value="computer">Computer</option>
-    //                     <option value="human">Human</option>
-    //                 </Form.Control>
-    //               </Form.Group>
-
-    //               <Form.Group as={Col} md="3"  xs="4" controlId="move_first">
-    //                 <Form.Label>Game Type</Form.Label>
-    //                 <Form.Control disabled={disabled_game}  value={this.state.game_type} as="select" onChange={this.handle_game_type} >
-    //                   <option value="vakyloha">Vaky loha</option>
-    //                   <option value="kobana">Kobana</option>
-    //                   <option value="fohy">Fohy</option>
-    //                   <option value="havia">Havia</option>
-    //                   <option value="havanana">Havanana</option>
-    //                 </Form.Control>
-    //               </Form.Group>
-
-    //               <Form.Group as={Col} md="3"  xs="4" controlId="depth">
-    //                 <Form.Label>Depth</Form.Label>
-    //                 <Form.Control value={this.state.depth} as="select"  onChange={this.handle_depth}>
-    //                   <option>1</option>
-    //                   <option>2</option>
-    //                   <option>3</option>
-    //                   <option>4</option>
-    //                   <option>5</option>
-    //                 </Form.Control>
-    //               </Form.Group>
-    //             </Form.Row>
-    //           </Form>
-    //         </Col>
-    //       </Row>
-    //       <Row noGutters={true}>
-    //         <div className='windowa'>
-    //         <Row noGutters={true}> 
-    //           <Col xs={12} sm={12} md={8}  className='game_windows row-eq-height'>
-    //             <div className='aspect_ratiodiv'>
-    //               <Container fluid={true} className='BoardCont' >
-    //                   <Row noGutters={true} className="crosscont"  >
-    //                     <div className='aspect_ratiodiv1'>
-    //                     <Board
-    //                       boardstate={boardstate}
-    //                       selected = {selected}
-    //                       available_move = {available_move}
-    //                       choose = {must_choose}
-    //                       eaten = {eaten}
-    //                       turn_id = {turn_id}
-    //                       onClick={i => this.onClick(i)}
-    //                     />
-    //                     </div>
-    //                   </Row>
-    //                   <Row noGutters={true} className="command_button" >
-    //                       <Col style={{ textAlign: "center" }}>
-    //                         <button  className="game_button"  onClick={() => this.restart_board()}>Restart</button>
-    //                       </Col>
-    //                       <Col style={{ textAlign: "center" }}>
-    //                         <button  className="game_button"   onClick={() => this.pass_game()}>Pass</button>
-    //                       </Col>
-    //                       <Col style={{ textAlign: "center" }}>
-    //                         <button  className="game_button"   onClick={() => this.undo_move()}>Undo</button>   
-    //                       </Col>
-    //                   </Row>
-                      
-    //               </Container>
-    //             </div>
-    //           </Col>
-    //           <Col xs={12} sm={12} md={4} className="status_window row-eq-height">
-    //             <MoveStatus 
-    //               status={status} move_string={new_history}
-    //             />
-    //           </Col>
-    //         </Row>
-    //         </div>
-    //       </Row>
-    //     </Container>
-    //   </div>
-    // )
 
