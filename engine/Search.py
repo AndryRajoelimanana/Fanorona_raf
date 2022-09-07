@@ -1,6 +1,6 @@
 import os
 import sys
-
+from wrapt_timeout_decorator import *
 sys.path.append(os.path.realpath('..'))
 
 from Utils.utils import *
@@ -12,16 +12,15 @@ import time
 
 
 def current_milli_time():
-    return int(round(time.time() * 1000))
+    return time.time() * 1000
 
 
 class Search:
     searchBound = 7200
     ASPIRATION_WINDOW = 50
     currentEval = 0
-    time_max = 3000
 
-    def __init__(self, game, boardin, ply=3):
+    def __init__(self, game, boardin, ply=3, time_max=3000):
         self.stop = False
         self.watcher = None
         self.firstMove = None
@@ -31,36 +30,7 @@ class Search:
         self.move_log = []
         self.game = game
         time.sleep(0)
-
-        if Game.must_pass(self.board):
-            if logging:
-                print('Forced pass')
-            board = self.board
-            new_board_move = Board.from_move(board, Piece(0))
-            board.best_move = Piece(0)
-            self.set_board_move(new_board_move)
-            self.done()
-            return
-
-        mg = MoveGenerator(self.board)
-        if not (mg.hasMoreElements()):
-            return
-
-        nextmove = mg.nextSet()
-        new_board_move = Board.from_move(self.board, nextmove)
-        self.set_board_move(new_board_move)
-        if not (mg.hasMoreElements()):
-            self.board.best_move = nextmove
-            if logging:
-                print("Forced move")
-            self.done()
-            return
-
-        if Board.endgameDatabase is not None:
-            self.set_board_move(self.board.PVar)
-            self.done()
-            return
-        self.search()
+        self.time_max = time_max
 
     def get_stop(self):
         return self.stop
@@ -100,6 +70,42 @@ class Search:
         self.board.PVar = None
         self.board.moveGenerator = None
 
+    def run(self):
+        if Game.must_pass(self.board):
+            if logging:
+                print('Forced pass')
+            board = self.board
+            new_board_move = Board.from_move(board, Piece(0))
+            board.best_move = Piece(0)
+            self.set_board_move(new_board_move)
+            self.done()
+            return
+
+        mg = MoveGenerator(self.board)
+        if not (mg.hasMoreElements()):
+            return
+        nextmove = mg.nextSet()
+        new_board_move = Board.from_move(self.board, nextmove)
+        self.set_board_move(new_board_move)
+        if not (mg.hasMoreElements()):
+            self.board.best_move = nextmove
+            if logging:
+                print("Forced move")
+            self.done()
+            return
+
+        if Board.endgameDatabase is not None:
+            self.set_board_move(self.board.PVar)
+            self.done()
+            return
+        try:
+            self.search()
+            print('no Timeout Occured')
+        except TimeoutError():
+            # this will never be printed because the decorated function catches implicitly the TimeoutError !
+            print('Timeout Occured')
+
+    # @ timeout(3000)
     def search(self):
         depth = 1
         log_disabled = False
@@ -108,8 +114,9 @@ class Search:
         self.board.best_move = Piece(-1)
         Board.sequence_number += 1
         sequence_number = Board.sequence_number
-        while ((self.ply == 0) or (depth <= self.ply)) and (
-                not (self.get_stop())):
+        start_time = current_milli_time()
+        while (self.ply == 0 or depth <= self.ply) and (current_milli_time()-
+                                                        start_time < self.time_max):
             Board.nodeCount = Board.leafCount = 0
             if Board.collect_extra_statistics:
                 Board.boardConsCount = Board.moveGenConsCount = 0
@@ -117,8 +124,6 @@ class Search:
 
             if Hash.collect_statistic_hash:
                 Hash.hits = Hash.misses = Hash.shallow = Hash.badBound = 0
-
-            start_time = current_milli_time()
 
             aspirations_window = int(Search.ASPIRATION_WINDOW / 2)
             alpha = Search.currentEval - aspirations_window
@@ -145,16 +150,13 @@ class Search:
                 else:
                     break
                 # time.sleep(0.1)
-            if (current_milli_time() - start_time) > Search.time_max:
-                new_board = Board.from_move(self.board,
-                                            self.board.best_move)
-                # print('nn')
-                # print(self.board)
-                # print(self.game.board)
-                # print(self.game.board.best_move.val)
-                self.set_board_move(new_board)
-                self.done()
-                return
+            # if (current_milli_time() - start_time) > self.time_max:
+            #     new_board = Board.from_move(self.board,
+            #                                 self.board.best_move)
+            #     print(f'Time exceeded {depth}')
+            #     self.set_board_move(new_board)
+            #     self.done()
+            #     return
 
             if Search.winning(previous_eval) and (
                     not Search.between(0, previous_eval, Search.currentEval)):
@@ -199,38 +201,97 @@ class Search:
         return (a >= b) != (c >= b)
 
 
-def run_search(game, ply=3):
+class SearchWatcher:
+    def __init__(self, s, search_time):
+        self.search = s
+        self.search_time = search_time
+        self.observing = False
+
+    def set_search_time(self, t):
+        self.search_time =  t
+
+    def get_search_time(self, t):
+        return self.search_time
+
+    def start(self):
+        self.run()
+
+    def observe(self):
+        self.observing = True
+        self.search.game.addObserver(self)
+
+    def run(self):
+        self.observe()
+
+    def update_board(self, game, board):
+        if self.search.game != game:
+            return
+        if self.search.board == board:
+            return
+        self.search.abort()
+        self.done()
+
+
+
+def run_search(game, ply=3, maxtime=3000):
+    step=1
     while True:
         board = game.get_board()
         if board.human_to_move():
             break
         if logging:
             print('\n Searching ........')
-        Search(game, board, ply=ply)
+        print('\n Searching ........', [board.prev.best_move if
+                                        board.prev else -1])
+        start = current_milli_time()
+        search = Search(game, board, ply=ply, time_max=maxtime)
+        search.run()
+        print(f'step: {step} took {current_milli_time()-start}')
+        step += 1
 
 
 if __name__ == '__main__':
     # from board.Board import SetBoard, Boardmove
 
-    board0 = ["none", "one", "none", "none", "none", "one", "none", "none",
-             "one", "none", "none", "one", "one", "none",
-             "one", "one", "one", "none", "none", "none", "one", "none", "two",
-             "none", "none", "one", "none", "two",
-             "none", "two", "none", "two", "two", "two", "none", "two", "two",
-             "two", "two", "two", "none", "two",
-             "two", "two", "none", "two", "two", "two", "two", "two"]
+    # board0 = ["none", "one", "none", "none", "none", "one", "none", "none",
+    #           "one", "none", "none", "one", "one", "none",
+    #           "one", "one", "one", "none", "none", "none", "one", "none", "two",
+    #           "none", "none", "one", "none", "two",
+    #           "none", "two", "none", "two", "two", "two", "none", "two", "two",
+    #           "two", "two", "two", "none", "two",
+    #           "two", "two", "none", "two", "two", "two", "two", "two"]
+    #
+    # board = ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'one',
+    #          'one',
+    #          'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none',
+    #          'none',
+    #          'one', 'none', 'none', 'two', 'two', 'none', 'none', 'none',
+    #          'none',
+    #          'none', 'none', 'one', 'none', 'two', 'none', 'two', 'none',
+    #          'none',
+    #          'none', 'two', 'none', 'two', 'none', 'none', 'two', 'two', 'none',
+    #          'none',
+    #          'none', 'none', 'two', 'two']
 
-    board = ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'one', 'one',
-     'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none',
-     'one', 'none', 'none', 'two', 'two', 'none', 'none', 'none', 'none',
-     'none', 'none', 'one', 'none', 'two', 'none', 'two', 'none', 'none',
-     'none', 'two', 'none', 'two', 'none', 'none', 'two', 'two', 'none', 'none',
-     'none', 'none', 'two', 'two']
+    # board = ["zero", "one", "one", "one", "one", "one", "one", "one", "one",
+    #      "one", "zero", "one", "one", "one", "one", "zero", "one", "one", "one", "one", "zero", "two", "one", "two", "one", "one", "two", "one", "two", "one", "zero", "two", "two", "two", "two", "zero", "two", "two", "two", "two", "zero", "two", "two", "two", "two", "zero", "two", "two", "two", "two"]
+    #
+    # my_pieces, opp_pieces = board_to_bit(board)
+    # my = Player(my_pieces)
+    #
+    #
+    # was_capture = False
+    # opp = Player(opp_pieces | (int(was_capture) << 63) | (1 << 62))
+    my = Player(544755571228672)
+    opp = Player(4611686035886554367)
 
-    my_pieces, opp_pieces = board_to_bit(board)
-    my = Player(my_pieces)
-    was_capture = False
-    opp = Player(opp_pieces | (int(was_capture) << 63) | (1 << 62))
+    b = Board(my, opp)
+    game = Game()
+    game.set_board(b)
+    search = Search(game, b, ply=3, time_max=3000)
+    search.run()
+
+    print('first')
 
     # my = Player(457811502825472)
     # opp = Player(4611686018704605570)
@@ -260,28 +321,28 @@ if __name__ == '__main__':
     game = Game()
     game.set_board(b)
 
-    run_search(game, 3)
-
-    gg = game.board
-    moves = []
-    # find pointer head
-    head = gg
-    while head.prev:
-        head = head.prev
-
-    cur = head
-    first_move = True
-    while cur.next:
-        if first_move:
-            move_pos = (cur.best_move & cur.myPieces).to_pos(True)+1
-            moves.append((move_pos, [0]))
-            first_move = False
-        move_pos = (cur.best_move & cur.open).to_pos(True)+1
-        move_ = cur.best_move.all_one()
-        moves.append((move_pos, move_))
-        cur = cur.next
-        if cur.best_move <= 0:
-            break
+    # run_search(game, 3)
+    #
+    # gg = game.board
+    # moves = []
+    # # find pointer head
+    # head = gg
+    # while head.prev:
+    #     head = head.prev
+    #
+    # cur = head
+    # first_move = True
+    # while cur.next:
+    #     if first_move:
+    #         move_pos = (cur.best_move & cur.myPieces).to_pos(True) + 1
+    #         moves.append((move_pos, [0]))
+    #         first_move = False
+    #     move_pos = (cur.best_move & cur.open).to_pos(True) + 1
+    #     move_ = cur.best_move.all_one()
+    #     moves.append((move_pos, move_))
+    #     cur = cur.next
+    #     if cur.best_move <= 0:
+    #         break
 
     # while cur.next:
     #     # print(cur)
@@ -315,7 +376,6 @@ if __name__ == '__main__':
     #
     #     gg = gg.prev
     # from flask import jsonify
-    print(moves)
     # fff = jsonify({'m': moves})
 
     # # ff = Search(b, ply=10)

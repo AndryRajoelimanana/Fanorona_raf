@@ -12,7 +12,9 @@ node_modules
 *.pyc
 *.chunk.js
 *.chunk.js.map
+*.xml
 client
 Fanorona/static/.DS_Store
 board/.env
 main.*
+venv

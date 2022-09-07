@@ -1,5 +1,7 @@
 import React from 'react';
 import { ToSquare } from './../../utils.js';
+import GameOptionsBar from "./../Menu/command_button.js";
+import { Container, Row} from 'react-bootstrap';
 
 
 const Stones = (props) => {
@@ -36,7 +38,34 @@ const Stones = (props) => {
 }
 
 
-class BoardRender extends React.Component {
+
+export function BoardRender(props) {
+  return (
+    <div className='aspect_ratiodiv'>
+    <Container fluid={true} className='BoardCont' >
+        <Row noGutters={true} className="crosscont"  >
+          <div className='aspect_ratiodiv1'>
+          <Board
+            boardstate={props.boardstate}
+            selected = {props.selected}
+            available_move = {props.available_move}
+            choose = {props.choose}
+            eaten = {props.eaten}
+            turn_id = {props.turn_id}
+            onClick={props.onClick}
+          />
+          </div>
+        </Row>
+        <Row noGutters={true} className="command_button" >
+          <GameOptionsBar createNewGame={props.createNewGame} passgame={props.passgame} undogame={props.undogame} />
+        </Row>
+    </Container>
+    </div>
+  );
+}
+
+
+class Board extends React.Component {
 
   RenderStones = (i) => {
     const stone = this.props.boardstate[i];

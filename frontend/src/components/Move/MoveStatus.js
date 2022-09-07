@@ -2,6 +2,7 @@ import React from 'react';
 import { Container, Row, Col} from 'react-bootstrap';
 import ClockLoader from "react-spinners/ClockLoader";
 import {useEffect, useState} from 'react';
+// import { CountdownCircleTimer } from "react-countdown-circle-timer";
 
 
 class MoveStatus extends React.Component {
@@ -43,6 +44,21 @@ function getWindowSize() {
   return {innerWidth, innerHeight};
 }
 
+
+// const renderTime = ({ remainingTime }) => {
+//   if (remainingTime === 0) {
+//     return <div className="timer">Too lale...</div>;
+//   }
+//   return (
+//     <div className="timer">
+//       <div className="text">Remaining</div>
+//       <div className="value">{remainingTime}</div>
+//       <div className="text">seconds</div>
+//     </div>
+//   );
+// };
+
+
 function SpinLoader(props) {
   const [windowSize, setWindowSize] = useState(getWindowSize());
   useEffect(() => {
@@ -61,6 +77,15 @@ function SpinLoader(props) {
       <Col xs={1} lg={1} md={1} className="loading_col">
       </Col>
       <Col xs={3} lg={3} md={3} className="loading_col">
+      {/* <CountdownCircleTimer
+          key={0}
+          isPlaying
+          duration={10}
+          colors={[["#004777", 0.33], ["#F7B801", 0.33], ["#A30000"]]}
+          onComplete={() => [true, 1000]}
+        >
+          {renderTime}
+      </CountdownCircleTimer> */}
         <ClockLoader className="searching" loading={true} cssOverride={{"position":"absolute"}} color={"#000000"} size={windowSize.innerWidth/25} />
       </Col>
       <Col xs={8} lg={8} md={8} className="loading_col">

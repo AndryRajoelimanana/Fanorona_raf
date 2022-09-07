@@ -1,13 +1,12 @@
 import React from 'react';
 // import {PathLine} from 'react-svg-pathline'
 import './App.css';
-import * as utils from './utils.js';
+import Queue, * as utils from './utils.js';
 import axios from 'axios';
-import { Container, Row, Col, Form} from 'react-bootstrap';
+import { Container, Row, Col} from 'react-bootstrap';
 import BoardRender from "./components/board/board.js";
 import MoveStatus from "./components/Move/MoveStatus.js";
-import { MoveFirst, GameType, SearchDepth } from "./components/Menu/game_options.js";
-import GameOptionsBar from "./components/Menu/command_button.js";
+import GameMenu from "./components/Menu/game_options.js";
 
 
 class App extends React.Component {
@@ -15,13 +14,16 @@ class App extends React.Component {
     super(props);
     this.initialState = {
       depth: 3,
+      maxtime: 3000,
       turn_id: 1,
+      step_id: 1,
       boardstate: utils.create_board(346553855, 562399296880640),
       status: '',
       visited: [],
       game_type:'',
       move_first:'human',
       wait_ai: false,
+      move_queue: new Queue(),
       history_turn: [{
         boardState: [{boardState: utils.create_board(346553855, 562399296880640)}],
         turn_id: 1, visited:[]
@@ -41,57 +43,110 @@ class App extends React.Component {
     await delay(time_wait);
   }
 
-  async update_board(board, move) {
-    let newboard = await utils.make_computer_move(board, move);
-    this.setState(() => ({boardstate: newboard}));
+  async update_board(board, visited, move) {
+    let [newboard, visited1] = utils.make_computer_move(board, visited, move);
+    console.log(newboard);
+    this.setState(() => ({boardstate: newboard, visited:visited1, step_id:this.fetch_step_id+1}));
     return newboard;
   }
 
 
   componentDidUpdate = (prevProps, prevState) => {
-    if (this.state.turn_id !== prevState.turn_id){
-      let bb = utils.new_board(this.fetch_board());
+    console.log(prevState.turn_id, this.state.turn_id)
+    if ((this.state.step_id > 1) || (this.state.turn_id !== prevState.turn_id)){
       if ((this.state.turn_id % 2) === 0){
+        let bb = utils.new_board(this.fetch_board());
         this.setState(() => ({wait_ai: true}));
         var board = bb.slice();
         const depth = this.state.depth;
-        let current_params = {'boardstate':board, 'depth':depth};
-        var selected_list = [];
-        axios.post('/pass', current_params).then(async (res) => {
-          let move_log = res.data["move_log"];
-          var newboard = bb.slice();
-          for (var i=0; i<move_log.length; i++){
-            selected_list.push(move_log[i][0]);
-            newboard = await this.update_board(newboard, move_log[i]);
-            await this.wait_here(600)
-          }
-          const turn = this.increase_turn();
-          const move_string = utils.tomoveString(selected_list);
-          const history = {boardState: utils.new_board(newboard), turn_id:
-  turn, visited:move_string};
-          const history_turn = this.AppendHistory(history);
+        const maxtime = this.state.maxtime;
+        const midcapture = this.state.step_id > 1;
+        let newboard;
+        let current_params = {'boardstate':board, 'depth':depth, 'maxtime':maxtime, 'midcapture':midcapture};
+        let visited = this.fetch_visited();
+        this.get_AI_move(current_params);
+        // axios.post('/pass', current_params).then(async (res) => {
+        //   let move_log = res.data["move_log"];
+        //   console.log('move', move_log);
+        //   if (move_log[0] === 0){
+        //     const turn = this.increase_turn();
+        //     const history = {boardState: board, turn_id:turn};
+        //     const history_turn = this.AppendHistory(history);
+        //     this.setState(() => ({boardstate: board,
+        //         turn_id:turn, history_turn:history_turn, wait_ai:false, visited:'', step_id:1}));
+        //     if (this.check_winner(board)){
+        //       this.restart_board();
+        //       return;
+        //     }
+        //   } else {
+        //   newboard = await this.update_board(board, visited, move_log);
+        //   }
+          // for (var i=0; i<move_log.length; i++){
+          //   selected_list.push(move_log[i][0]);
+          //   newboard = await this.update_board(newboard, move_log[i]);
+          //   await this.wait_here(600)
+          // }
+          // selected_list.push(move_log[0]);
 
-          this.setState(() => ({boardstate: utils.new_board(newboard),
-  turn_id:turn, history_turn:history_turn}));
-        if (this.check_winner(newboard)){
-          this.restart_board();
-          return;
-        }
-        }
-        ).catch(err => {
-          alert(err);
-        });
-        this.setState(() => ({wait_ai: false}));
+  //         const turn = this.increase_turn();
+  //         const move_string = utils.tomoveString(selected_list);
+  //         const history = {boardState: utils.new_board(newboard), turn_id:
+  // turn, visited:move_string};
+  //         const history_turn = this.AppendHistory(history);
+
+  //         this.setState(() => ({boardstate: utils.new_board(newboard),
+  // turn_id:turn, history_turn:history_turn, wait_ai:false}));
+        // });
+        // ).catch(err => {
+        //   alert(err);
+        // });
       }
     }
   }
 
+  sse(newboard, visited) {
+    var source = new EventSource('http://localhost:5000/stream');
+    source.onmessage  = function(e) {
+      let move_log = JSON.parse(e.data)['move_log'];
+      console.log(move_log);
+      if (move_log[0] === 0){
+        source.close();
+        const turn = this.increase_turn();
+        const history = {boardState: newboard, turn_id:turn};
+        const history_turn = this.AppendHistory(history);
+        this.setState(() => ({boardstate: newboard,
+            turn_id:turn, history_turn:history_turn, wait_ai:false, visited:'', step_id:1}));
+        if (this.check_winner(newboard)){
+          this.restart_board();
+          return;
+        }
+      } else {
+      newboard = this.update_board(newboard, visited, move_log);
+      }
+    };
+  }
+  
+  get_AI_move(current_params) {
+    let visited = this.fetch_visited();
+    let newboard = current_params['boardstate'];
+    const res = axios.post('http://localhost:5000/pass1', current_params);
+    console.log(res);
+    this.sse(newboard, visited);
+  };
 
   AppendHistory(history) {
     var history_turn = this.state.history_turn.slice();
-    return history_turn.concat([history])
+    return history_turn.concat([history]);
   }
 
+//   get_computer = (current_params) => {
+//     axios.post('/pass', current_params).then(async (res) => {
+//       let move_log = res.data["move_log"];
+//       let move_dict = res.data["move_dict"];
+//       return [move_log, move_dict];
+//   }
+
+// }
 
   undo_move = () => {
     const turn = this.fetch_turn_id()
@@ -151,6 +206,10 @@ class App extends React.Component {
     this.setState({depth: event.target.value});
   }
 
+  handle_maxtime = (event) =>{
+    this.setState({maxtime: event.target.value});
+  }
+
   increase_turn = () => {return this.state.turn_id+1;}
 
   reset_newboard = async (board, visited) =>{
@@ -178,6 +237,7 @@ class App extends React.Component {
   fetch_board = () => {return this.state.boardstate};
   fetch_turn_id = () => {return this.state.turn_id};
   fetch_visited = () => {return this.state.visited};
+  fetch_step_id = () => {return this.state.step_id};
   wait_computer = () => {return this.state.wait_ai};
 
   onClick = async (i) => {
@@ -324,47 +384,28 @@ class App extends React.Component {
     return (
       <div className='main'>
         <Container fluid={true} id={'container1'}>
-          <Row>
-            <Col xs={12} sm={12} md={8}>
-              <Form className='form_command'>
-                  <Form.Row className="justify-content-md-center">
-                    <MoveFirst move_first={this.state.move_first} onChange={this.handle_move_first}/>
-                    <GameType disabled_game={disabled_game} game_type={this.state.game_type} onChange={this.handle_game_type} />
-                    <SearchDepth depth={this.state.depth} onChange={this.handle_depth}/>
-                  </Form.Row>
-              </Form>
-            </Col>
-          </Row>
+          <GameMenu move_first={this.state.move_first} handle_move_first={this.handle_move_first} 
+                    disabled_game={disabled_game} game_type={this.state.game_type} handle_game_type={this.handle_game_type}
+                    depth={this.state.depth} maxtime={this.state.maxtime} handle_depth={this.handle_depth} handle_maxtime={this.handle_maxtime}/>
 
-          <Row>
-              <Row noGutters={true}> 
-                <Col xs={12} sm={12} md={8}  className='game_windows row-eq-height'>
-                  <div className='aspect_ratiodiv'>
-                    <Container fluid={true} className='BoardCont' >
-                        <Row noGutters={true} className="crosscont"  >
-                          <div className='aspect_ratiodiv1'>
-                          <BoardRender
-                            boardstate={boardstate}
-                            selected = {selected}
-                            available_move = {available_move}
-                            choose = {must_choose}
-                            eaten = {eaten}
-                            turn_id = {turn_id}
-                            onClick={i => this.onClick(i)}
-                          />
-                          </div>
-                        </Row>
-                        <Row noGutters={true} className="command_button" >
-                          <GameOptionsBar createNewGame={this.restart_board} passgame={this.pass_game} undogame={this.undo_move} />
-                        </Row>
-                        
-                    </Container>
-                  </div>
-                </Col>
-                <Col xs={12} sm={12} md={4} className="status_window row-eq-height">
-                    <MoveStatus status={status} move_string={new_history} />
-                </Col>
-              </Row>
+          <Row noGutters={true}> 
+            <Col xs={12} sm={12} md={8} lg={8} className='game_windows row-eq-height'>
+              <BoardRender
+                boardstate={boardstate}
+                selected = {selected}
+                available_move = {available_move}
+                choose = {must_choose}
+                eaten = {eaten}
+                turn_id = {turn_id}
+                onClick={i => this.onClick(i)}
+                createNewGame={this.restart_board} 
+                passgame={this.pass_game} 
+                undogame={this.undo_move}
+              />
+            </Col>
+            <Col xs={12} sm={12} md={4} lg={4} className="status_window row-eq-height">
+                <MoveStatus status={status} move_string={new_history} />
+            </Col>
           </Row>
         </Container>
       </div>

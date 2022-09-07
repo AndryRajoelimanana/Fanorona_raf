@@ -51,17 +51,36 @@ export function get_first_move(board, move_string){
   return game_type;
 }
 
+function get_selected(board, moves){
+  for (let i = 0; i < moves.length; i++) {
+    if (board[moves[i]] === 'two'){
+      return moves[i]
+    }
+  }
+}
 
-export function make_computer_move(board, moves){
+function get_newvisited(board, moves){
+  for (let i = 0; i < moves.length; i++) {
+    if (board[moves[i]] === 'zero'){
+      return moves[i]
+    }
+  }
+}
+
+export function make_computer_move(board, visited, moves){
   let boardstate = board;
-  const selected = moves[0];
-  const eaten = moves[1];
+  const selected = get_newvisited(board, moves);
+  const prev_selected = get_selected(board, moves);
+  if (visited === ''){
+    visited = ToSquare(prev_selected) + '-'+ToSquare(selected);
+  } else visited = visited + '-'+ToSquare(selected);
+  const eaten = moves;
   boardstate = new_board(boardstate);
   if (eaten.length === 0){
     // boardstate[selected] = 'zero visited';
     // return boardstate;
     alert('Bad eaten/moves');
-    return boardstate;
+    return [boardstate, visited];
   }
   for (var j=0; j<eaten.length; j++){
     if (boardstate[eaten[j]] === 'one') {
@@ -71,7 +90,7 @@ export function make_computer_move(board, moves){
     }
   }
   boardstate[selected] = 'two selected visited';
-  return boardstate;
+  return [boardstate, visited];
 }
 
 
@@ -477,6 +496,33 @@ export  function get_board(gametype){
   return board;
 }
 
+class Queue {
+  constructor() {
+    this.elements = {};
+    this.head = 0;
+    this.tail = 0;
+  }
+  enqueue(element) {
+    this.elements[this.tail] = element;
+    this.tail++;
+  }
+  dequeue() {
+    const item = this.elements[this.head];
+    delete this.elements[this.head];
+    this.head++;
+    return item;
+  }
+  peek() {
+    return this.elements[this.head];
+  }
+  get length() {
+    return this.tail - this.head;
+  }
+  get isEmpty() {
+    return this.length === 0;
+  }
+}
+
 export function getInitialState() {
   const initialState = {
     history: [{
@@ -506,3 +552,6 @@ export function getInitialState() {
   };
   return initialState;
 }
+
+
+export default Queue;
