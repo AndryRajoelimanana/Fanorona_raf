@@ -107,8 +107,11 @@ class App extends React.Component {
   sse(newboard, visited) {
     var source = new EventSource('http://localhost:5000/stream');
     source.onmessage  = function(e) {
-      let move_log = JSON.parse(e.data)['move_log'];
-      console.log(move_log);
+      console.log(e);
+      const res = JSON.parse(e.data);
+      console.log('res event', res);
+      let move_log = res['move_log'];
+      console.log('tatoee', move_log);
       if (move_log[0] === 0){
         source.close();
         const turn = this.increase_turn();
@@ -124,6 +127,11 @@ class App extends React.Component {
       newboard = this.update_board(newboard, visited, move_log);
       }
     };
+    source.onerror = function(e){
+        console.log('errors', e.data);
+        source.close();
+    }
+
   }
   
   get_AI_move(current_params) {

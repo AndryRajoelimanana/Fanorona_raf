@@ -9,11 +9,10 @@ import redislite
 from flask_cors import CORS
 import json
 
-
 app = Flask(__name__, template_folder="static/react")
 CORS(app)
 
-redis = redislite.StrictRedis('/tmp/redis_db.db')
+redis = redislite.StrictRedis('/tmp/redis_db.db', decode_responses=True)
 
 app.secret_key = '\xb3j\x9e\xeeD&g\xa4\xcd\xdeH\xa4\x0fT\xc4+\xdf\x04H{_\xa0\xe0g'
 
@@ -50,10 +49,10 @@ def pass_game():
     first_move = True
     while cur.next:
         if first_move:
-            move_pos = (cur.best_move & cur.myPieces).to_pos(True)+1
+            move_pos = (cur.best_move & cur.myPieces).to_pos(True) + 1
             moves.append((move_pos, [0]))
             first_move = False
-        move_pos = (cur.best_move & cur.open).to_pos(True)+1
+        move_pos = (cur.best_move & cur.open).to_pos(True) + 1
         move_ = cur.best_move.all_one()
         moves.append((move_pos, move_))
         cur = cur.next
@@ -65,8 +64,11 @@ def pass_game():
 
 def event_stream():
     while True:
-        f = json.dumps(redis.rpop('moves3'))
-        print('moves3', f)
+        move = redis.rpop('moves3')
+        if not move:
+            yield json.dumps({'move_log': [0]})
+        f = json.dumps(move)
+        print('moves3', move, f)
         # if len(f['move_log']) == 0:
         #     break
         yield f
@@ -75,7 +77,18 @@ def event_stream():
 
 @app.route("/stream", methods=["GET"])
 def stream():
-    return Response(event_stream(), mimetype="text/json")
+    print(redis.lrange('moves', 0, -1))
+    move = redis.rpop('moves')
+    print(json.dumps(move))
+    if move:
+        # response = Response(move, mimetype="text/json")
+        # response = Response(move, mimetype='text/event-stream')
+        response = jsonify(move)
+    else:
+        response = Response(json.dumps({'move_log': [0]}),
+                            mimetype='text/event-stream')
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 
 @app.route("/pass1", methods=["GET", "POST"])
@@ -114,8 +127,7 @@ def pass_game1():
         print({'move_log': moves})
         redis.lpush('moves', json.dumps({'move_log': moves}))
     redis.lpush('moves', json.dumps({'move_log': [0]}))
-    print(redis.lrange('moves', 0, -1))
-    return jsonify({"status":204})
+    return jsonify({"status": 204})
 
 
 if __name__ == '__main__':
